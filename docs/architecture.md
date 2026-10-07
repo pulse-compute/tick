@@ -6,11 +6,13 @@ types and package scaffolding only: no runner, provider adapter, or ownership pr
 `examples/bindings.ts` demonstrates typed dependency wiring, not runnable scheduling.
 TICK-02 adds a separate [HTTP KV adapter candidate](fastly-kv.md); its deployed gate
 remains pending, and it does not implement the ownership transitions described here.
+TICK-03 adds an experimental [per-job core](core.md) implementing those transitions against
+the declared store contract. There is still no executor or deployed ownership proof.
 
 ## Boundaries and bindings
 
 - The trigger adapter authenticates incoming signals; a signal is not ownership.
-- The future core calculates eligible intervals and conditionally changes job records.
+- The core calculates eligible intervals and conditionally changes job records.
 - The coordination adapter provides atomic operations on one key, without a clock predicate.
 - The executor owns application behavior, effect deduplication, and downstream commit rules.
 - Pulse is an optional consumer. Tick has no Pulse runtime or package dependency.
@@ -129,12 +131,15 @@ before job scanning and its measured amplification belong to TICK-05.
 
 ## Validation and evidence
 
-Before I/O, the future runtime must validate:
+The per-job core validates its inputs before I/O; a future runner must additionally validate
+job-list uniqueness and executor limits:
 
 - Namespace, job IDs, and schedule revisions match `[A-Za-z0-9._-]{1,80}`; job IDs are unique.
 - Coordination prefixes match `[A-Za-z0-9/_-]{0,128}`; final keys satisfy provider constraints.
-- All time/count values and calculated timestamps are safe integers; count limits,
+- Configured time/count values and calculated timestamps are safe integers; count limits,
   intervals, leases, run timeouts, and safety margins are positive.
+- Monotonic clock readings are finite, nonnegative, and nondecreasing; fractional milliseconds
+  are allowed. Epoch readings remain safe integers and observed rollback fails closed.
 - Anchors, retry delays, and clock-skew allowances are nonnegative; lease duration exceeds
   skew plus safety margin, and a dispatch has usable time after all deadline bounds.
 
@@ -146,6 +151,7 @@ change stored state. Missed-window reports describe gaps inferred from available
 records and observed triggers; they are not a durable audit log or proof of delivery.
 No trigger continuity means no guaranteed scheduling continuity.
 
-The live trigger and coordination gates in [roadmap.md](roadmap.md) precede scheduler
-implementation. Local tests establish local behavior only; production guarantees remain
+The live trigger and coordination gates in [roadmap.md](roadmap.md) precede deployed
+integration. The experimental TICK-03 implementation proceeds at user request against the
+declared store contract. Local tests establish local behavior only; production guarantees remain
 conditional on the selected provider's measured semantics and the time assumptions above.
