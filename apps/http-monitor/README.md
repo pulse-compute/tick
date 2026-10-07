@@ -77,10 +77,12 @@ runtime dependencies; this application, its signer and host tools stay outside t
 packed artifact. The standalone check needs no Pulse monorepo or network.
 
 The Viceroy check invokes the actual compiled application guest with three local HTTP
-backends and generated temporary fixture credentials. Five isolated domains cover a
+backends and generated temporary fixture credentials. Eight isolated domains cover a
 16-trigger burst, HTTP 503, transport failure, a real fixture commit with its reply
 dropped, and recovery from explicitly seeded expired KV state plus a saved snapshot.
-Every S3 wire signature is independently verified. It uses local port 17680 and cleans
+TICK-09 adds access-denied reads, KV throttling and an old PUT released only when the
+successor probes, demonstrating late first-writer effects. Every S3 wire signature is
+independently verified. It uses local port 17680 and cleans
 up its guest/process configuration; it does not measure deployed CAS or native probes.
 
 ## Node host
@@ -132,7 +134,12 @@ settings with the application evidence:
 2. Link Secret Store `tick08_secrets`. Map `probe-token`, `fastly-api-token`,
    `aws-access-key-id`, `aws-secret-access-key`, and `aws-session-token` to the variables
    above for local serving; supply an empty session entry only for non-session credentials.
-   Use credentials scoped to KV and S3 GetObject/PutObject on the dedicated prefixes.
+   Use credentials scoped to KV and S3 GetObject/PutObject on the dedicated prefixes,
+   plus `s3:ListBucket` on the observation bucket so missing-object GET returns 404.
+   Without ListBucket, AWS can return 403 for a missing key; the monitor correctly fails
+   closed before probing. This GET permission check is needed even though the app makes
+   no ListObjects call. Validate it with the exact deployed principal on an isolated
+   absent key; do not reinterpret 403 as absence. See the [AWS GetObject permissions](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html).
    Never log or commit credentials, authorization headers or presigned URLs.
 3. Verify TLS, certificate/SNI and Host override separately for `fastly_api`
    (`api.fastly.com`), `monitored` (target host), and `observations` (the exact bucket

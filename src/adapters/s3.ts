@@ -1,4 +1,4 @@
-import { isCoordinationRecord as isRecord } from '../internal/records.js';
+import { isCoordinationRecord as isRecord, serializeCoordinationRecord } from '../internal/records.js';
 import { isNativeSignal } from '../internal/bindings.js';
 import type { ConditionalWrite, CoordinationStore, ReadResult, StoreRevision, WriteResult } from '../index.js';
 
@@ -61,7 +61,8 @@ async function boundedText(response: Response): Promise<string> {
 async function isMissingKey(response: Response): Promise<boolean> {
   // Fail closed on generic proxy 404s, NoSuchBucket, delete markers, malformed/large errors.
   // Recognize the documented S3 Error envelope only, never a Code buried in Message.
-  if (response.headers.get('x-amz-delete-marker') === 'true') { await discard(response); return false; }
+  if (response.headers.get('x-amz-delete-marker') === 'true' || response.headers.has('content-range')
+    || response.headers.has('x-amz-expiration')) { await discard(response); return false; }
   const text = await boundedText(response);
   return /^(?:\s*<\?xml[^<>]*\?>)?\s*<Error(?:\s+xmlns="[^"<>]*")?>\s*<Code>NoSuchKey<\/Code>(?:(?!<Code>|<!)[\s\S])*<\/Error>\s*$/.test(text);
 }
@@ -121,8 +122,7 @@ export function createS3Store(options: S3Options): CoordinationStore {
           condition = revision;
         }
         else throw new TypeError();
-        if (!isRecord(write.value)) throw new TypeError();
-        body = JSON.stringify(write.value);
+        body = serializeCoordinationRecord(write.value);
         if (new TextEncoder().encode(body).length > MAX_BYTES || !isRecord(JSON.parse(body))) throw new TypeError();
       } catch { throw new TypeError('Invalid S3 conditional write'); }
       try {

@@ -29,6 +29,9 @@ is disabled.
   observations, explicit Node/Fastly hosts and an optional Pulse probe boundary.
   [The runnable example](apps/http-monitor/README.md) includes recovery checks and setup.
   **Deployed monitor behavior remains INCONCLUSIVE.**
+- **TICK-09:** Adversarial regressions and focused clock/wire-data fixes, bounded monitor
+  fault scenarios, [operations guidance](docs/operations.md) and a private package artifact
+  workflow. [Independent reviewer sign-off and deployed gates remain pending](proof/hardening/REVIEW.md).
 
 The experimental core is exported from `@pulse-compute/tick/core` and the runner from
 `@pulse-compute/tick/runner`. The experimental receiver is exported from
@@ -79,10 +82,11 @@ npm run proof:trigger:burst # bounded reference comparison; synthetic evidence
 npm run proof:s3:build   # signed S3 conformance guest -> proof/s3/bin/main.wasm
 npm run test:monitor     # practical monitor + isolated packed-package consumer
 npm run monitor:guest:build # application guest -> apps/http-monitor/bin/main.wasm
+npm run package:artifact -- --output pkg/NEW_COHORT # clean committed checkout; private tarball/manifest
 ```
 
 `fastly compute build` uses `proof:build` via `fastly.toml`. `npm pack` builds the package;
-only `dist/`, this README, and the architecture/core/execution/adapter/trigger/binding/conformance notes are included. The package has **zero
+only `dist/`, this README, and the architecture/core/execution/adapter/trigger/binding/conformance/operations notes are included. The package has **zero
 runtime dependencies**; the Fastly SDK is only a development dependency for the proof.
 
 ## Read next
@@ -98,6 +102,9 @@ runtime dependencies**; the Fastly SDK is only a development dependency for the 
 - [S3 adapter](docs/s3.md): conditional PUT, opaque ETags and explicit signed transport.
 - [S3 proof runbook](proof/s3/README.md): conformance, stale owners, SigV4 and evidence.
 - [Practical HTTP monitor](apps/http-monitor/README.md): KV/S3 mappings, hosts, recovery and Pulse boundary.
+- [Operations](docs/operations.md): outcomes, bounded live fault matrix, retention and recovery.
+- [Private artifact/release gate](docs/release.md): clean-source tarball hashes and explicit later release decisions.
+- [Adversarial audit handoff](proof/hardening/REVIEW.md): reproduced findings and separate reviewer requirements.
 - [Coordination proof runbook](proof/kv/README.md): deployment, bounded cases, and evidence.
 - [Ticket roadmap](docs/roadmap.md): scope, model/effort assignments, and proof gates.
 - [Contributor rules](AGENTS.md): preserve the boundaries while implementing later tickets.

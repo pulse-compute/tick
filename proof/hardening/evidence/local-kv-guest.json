@@ -1,0 +1,78 @@
+{
+  "schema": "tick.kv.guest-smoke.v1",
+  "mode": "synthetic",
+  "runtime": "viceroy",
+  "passed": true,
+  "authAndRouting": [
+    200,
+    401,
+    405,
+    404,
+    400
+  ],
+  "apiCalls": 38,
+  "cases": [
+    {
+      "name": "fresh-keys",
+      "verdict": "observed",
+      "operations": 7
+    },
+    {
+      "name": "missing-revision",
+      "verdict": "observed",
+      "operations": 1
+    },
+    {
+      "name": "create-race",
+      "verdict": "observed",
+      "operations": 5
+    },
+    {
+      "name": "replace-race",
+      "verdict": "observed",
+      "operations": 7
+    },
+    {
+      "name": "stale-owner",
+      "verdict": "observed",
+      "operations": 5
+    },
+    {
+      "name": "crash-takeover",
+      "verdict": "observed",
+      "operations": 5
+    },
+    {
+      "name": "lost-response",
+      "verdict": "observed",
+      "operations": 4
+    },
+    {
+      "name": "uncertain-superseded",
+      "verdict": "observed",
+      "operations": 4
+    }
+  ],
+  "evidence": {
+    "completeTrace": true,
+    "distributed": false,
+    "racePops": {
+      "create-race": [],
+      "replace-race": []
+    },
+    "operations": 38
+  },
+  "note": "Actual Wasm guest and Secret Store/backend bindings against a local HTTP API fixture. No deployed/native KV evidence.",
+  "certified": false,
+  "artifact": {
+    "path": "proof/kv/bin/main.wasm",
+    "bytes": 11636364,
+    "sha256": "f3a1e641c06d3d928826232f101c9c139cc1f5d87735b868dcc6bd269b136c5c"
+  },
+  "versions": {
+    "node": "v24.19.0",
+    "viceroy": "viceroy 0.21.1",
+    "jsCompute": "3.45.0",
+    "typescript": "5.9.3"
+  }
+}

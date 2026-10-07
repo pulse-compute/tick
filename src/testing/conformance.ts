@@ -1,6 +1,6 @@
 import type { CoordinationRecord, CoordinationStore, ReadResult, StoreRevision, WriteResult } from '../index.js';
 import { captureCoordination } from '../internal/bindings.js';
-import { isCoordinationRecord } from '../internal/records.js';
+import { isCoordinationRecord, serializeCoordinationRecord } from '../internal/records.js';
 
 export interface ConformanceOptions {
   /** All writers must address the same isolated backing store and key domain. */
@@ -88,15 +88,17 @@ export async function runStoreConformance(options: ConformanceOptions): Promise<
     try { result = await store.read(target); } catch { return stop('inconclusive', 'read-threw'); }
     try {
       if (result?.status === 'absent' || result?.status === 'unavailable') return { status: result.status };
-      if (result?.status !== 'found' || typeof result.revision !== 'string' || !result.revision || result.revision.length > 1024
-        || !isCoordinationRecord(result.value)) return stop('failed', 'invalid-read-result');
-      const value: unknown = JSON.parse(JSON.stringify(result.value));
+      if (result?.status !== 'found') return stop('failed', 'invalid-read-result');
+      const revision = result.revision, source = result.value;
+      if (typeof revision !== 'string' || !revision || revision.length > 1024
+        || !isCoordinationRecord(source)) return stop('failed', 'invalid-read-result');
+      const value: unknown = JSON.parse(serializeCoordinationRecord(source));
       if (!isCoordinationRecord(value)) return stop('failed', 'invalid-read-result');
-      const identity = JSON.stringify([target, result.revision]), previous = pairs.get(identity);
+      const identity = JSON.stringify([target, revision]), previous = pairs.get(identity);
       if (previous && !same(previous, value)) return stop('failed', 'incoherent-value-revision');
       Object.freeze(value.run); Object.freeze(value);
       pairs.set(identity, value);
-      return { status: 'found', value, revision: result.revision };
+      return { status: 'found', value, revision };
     } catch (error) { if (isStop(error)) throw error; return stop('failed', 'invalid-read-result'); }
   }
   async function write(store: CoordinationStore, target: string, value: CoordinationRecord, revision?: StoreRevision): Promise<WriteResult> {

@@ -29,6 +29,11 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
   probe health failures separate from execution/storage failure; a saved first snapshot
   is recoverable across attempts, not exactly-once probing or an owner-fenced effect.
   The optional Pulse shim is a capability contract, not a tested Pulse SDK integration.
+- TICK-09 records adversarial regressions, original monotonic timeline propagation and
+  data-only record capture. Read `proof/hardening/REVIEW.md`, `docs/operations.md` and
+  `docs/release.md` before changes. Implementation audit is not independent sign-off.
+  Package artifact preparation must retain privacy, zero runtime dependencies, committed
+  source hashes and a fresh output; no mode/manifest/local pass grants release authority.
 - Keep changes within the named ticket. Do not add queues, cron syntax, workflow engines,
   dashboard UI, background daemons, or an Uptime Kuma port as incidental work.
 - Package naming is provisional. Keep `private: true`; no publication/release is authorized

@@ -87,11 +87,21 @@ test('S3 declaration and invalid writes reject before I/O with sanitized errors'
     { kind: 'revision', revision: 'W/"weak"' }, { kind: 'revision', revision: '"a", "b"' }]) {
     await assert.rejects(store.compareAndSwap({ key: 'job', expected, value: record() }), /Invalid S3 conditional write/);
   }
-  for (const value of [Object.create(record()), Object.assign(Object.create({ toJSON() { return {}; } }), record()), record({ extra: 'x' })]) {
+  for (const value of [Object.create(record()), Object.assign(Object.create({ toJSON() { return {}; } }), record()), record({ extra: 'x' }),
+    Object.assign(Object.create({ toJSON() { return record({ mutationId: 'switched-valid-mutation' }); } }), record()),
+    record({ run: Object.assign(Object.create({ toJSON() { return record().run; } }), record().run) })]) {
     await assert.rejects(store.compareAndSwap({ key: 'job', expected: { kind: 'absent' }, value }), /Invalid S3 conditional write/);
   }
   assert.throws(() => make(async () => found(), { signal: { aborted: false, addEventListener() {}, removeEventListener() {} } }), /Invalid S3 binding/);
   assert.equal(calls, 0);
+});
+
+test('partial or expiring NoSuchKey envelopes grant neither absence nor a known missing-revision conflict', async () => {
+  for (const headers of [{ 'content-range': 'bytes 0-100/200' }, { 'x-amz-expiration': 'configured' }]) {
+    const store = make(async () => new Response('<Error><Code>NoSuchKey</Code></Error>', { status: 404, headers }));
+    assert.equal((await store.read('job')).status, 'unavailable');
+    assert.equal((await store.compareAndSwap({ key: 'job', expected: { kind: 'revision', revision }, value: record() })).status, 'indeterminate');
+  }
 });
 
 test('S3 captures bindings and serialized writes before host signing awaits; forwards native cancellation', async () => {

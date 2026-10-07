@@ -3,7 +3,7 @@ import type { CoordinationResult, CoordinatorLimits } from '../core.js';
 import { createRunner } from '../runner.js';
 import { captureClock, captureCoordination, captureIds, captureRuntime, captureTelemetry } from '../internal/bindings.js';
 import type { ExecutionRuntime, TickResult } from '../runner.js';
-import type { CoordinationBinding, CoordinationStore, IntervalSchedule, TickDefinition } from '../index.js';
+import type { Clock, CoordinationBinding, CoordinationStore, IntervalSchedule, TickDefinition } from '../index.js';
 
 export interface FastlyTriggerOptions<Resources> {
   readonly definition: TickDefinition<Resources>;
@@ -101,17 +101,24 @@ export function createFastlyTrigger<Resources>(options: FastlyTriggerOptions<Res
       cancelTimer = runtime.setTimer(() => scope.abort(), timeoutMs - margin);
       if (typeof cancelTimer !== 'function') throw new TypeError('Invalid Tick timer binding');
       let lastWall = receivedAtMs, lastMono = startedMono, invalid = false;
-      const usable = () => {
+      const sample = (): number | null => {
+        let effective = receivedAtMs;
         try {
           const wall = clock.nowMs(), mono = clock.monotonicMs();
-          const effective = Math.max(wall, receivedAtMs + Math.ceil(mono - startedMono));
+          effective = Math.max(wall, receivedAtMs + Math.ceil(mono - startedMono));
           if (!integer(wall) || wall < lastWall || !Number.isFinite(mono) || mono < lastMono || mono > Number.MAX_SAFE_INTEGER
             || !integer(effective) || effective >= deadlineMs - margin) invalid = true;
           lastWall = wall; lastMono = mono;
         } catch { invalid = true; }
         if (invalid) scope.abort();
-        return !scope.signal.aborted;
+        return scope.signal.aborted ? null : effective;
       };
+      const usable = () => sample() !== null;
+      const requestClock: Clock = { nowMs() {
+        const now = sample();
+        if (now === null) throw new TypeError('Tick trigger expired');
+        return now;
+      }, monotonicMs: clock.monotonicMs };
       if (!usable()) return reply(503, { error: 'trigger_unavailable' });
       const expected = await loadToken();
       if (typeof expected !== 'string' || !TOKEN.test(expected)) return reply(503, { error: 'trigger_unavailable' });
@@ -125,7 +132,7 @@ export function createFastlyTrigger<Resources>(options: FastlyTriggerOptions<Res
         throw new TypeError('Invalid Tick receiver metadata');
       }
       const invocation = Object.freeze({ requestId: id, deadlineMs, signal: scope.signal });
-      const gate = createJobCoordinator({ ...gateOptions, coordination: {
+      const gate = createJobCoordinator({ ...gateOptions, clock: requestClock, coordination: {
         ...admission.coordination, store: counted(admission.coordination.store, gateCalls),
       } });
       const resolve = async (result: CoordinationResult) => result.status === 'indeterminate' && usable()
@@ -150,6 +157,7 @@ export function createFastlyTrigger<Resources>(options: FastlyTriggerOptions<Res
       const startAt = definition.jobs.length ? Number(slotIndex * BigInt(definition.limits.maxJobsPerTick) % BigInt(definition.jobs.length)) : 0;
       // Only a known admitted invocation constructs/visits the job runner and touches job storage.
       const runner = createRunner({ ...definition, bindings: { ...definition.bindings,
+        clock: requestClock,
         coordination: { ...definition.bindings.coordination, store: counted(definition.bindings.coordination.store, jobCalls) },
       } }, runtime);
       const runnerDeadline = Math.min(deadlineMs, claimed.lease.record.leaseExpiresAtMs, claimed.lease.record.runDeadlineMs) - reserve;

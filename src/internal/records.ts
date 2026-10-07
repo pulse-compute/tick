@@ -5,7 +5,22 @@ const tokenId = /^[A-Za-z0-9._:-]{1,128}$/;
 const integer = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
 const matches = (value: unknown, pattern: RegExp): value is string => typeof value === 'string' && pattern.test(value);
-const only = (value: Record<string, unknown>, keys: readonly string[]) => Object.keys(value).every((key) => keys.includes(key));
+const only = (value: Record<string, unknown>, keys: readonly string[]) => {
+  const actual = Object.keys(value);
+  return actual.length === keys.length && actual.every((key) => keys.includes(key));
+};
+
+/** Capture data once, without invoking record/run serialization hooks. */
+export function serializeCoordinationRecord(value: unknown): string {
+  if (!object(value) || 'toJSON' in value) throw new TypeError('Invalid Tick record');
+  const copy: Record<string, unknown> = Object.assign(Object.create(null), value);
+  if (!object(copy.run) || 'toJSON' in copy.run) throw new TypeError('Invalid Tick record');
+  copy.run = Object.assign(Object.create(null), copy.run);
+  if (!isCoordinationRecord(copy)) throw new TypeError('Invalid Tick record');
+  const body = JSON.stringify(copy);
+  if (!isCoordinationRecord(JSON.parse(body))) throw new TypeError('Invalid Tick record');
+  return body;
+}
 
 // Validate at the storage boundary. Type assertions alone cannot validate persisted data.
 export function isCoordinationRecord(value: unknown): value is CoordinationRecord {

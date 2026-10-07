@@ -2,7 +2,7 @@ import type {
   Clock, CoordinationBinding, CoordinationRecord, ExecutionLimits, FailedRecord, IdSource,
   IntervalSchedule, LeasedRecord, MutationId, RunId, StoreRevision, TickInvocation, WritePrecondition,
 } from './index.js';
-import { isCoordinationRecord } from './internal/records.js';
+import { isCoordinationRecord, serializeCoordinationRecord } from './internal/records.js';
 import { captureClock, captureCoordination, captureIds } from './internal/bindings.js';
 
 export type CoordinatorLimits = Pick<ExecutionLimits,
@@ -174,7 +174,7 @@ export function createJobCoordinator(options: CoordinatorOptions): JobCoordinato
       const revision = result.revision, value = result.value;
       if (typeof revision !== 'string' || !revision || revision.length > 1024) return { status: 'configuration-mismatch' };
       if (!isCoordinationRecord(value)) return { status: 'configuration-mismatch' };
-      const copy: unknown = JSON.parse(JSON.stringify(value));
+      const copy: unknown = JSON.parse(serializeCoordinationRecord(value));
       if (!isCoordinationRecord(copy) || !consistent(copy)) return { status: 'configuration-mismatch' };
       return { status: 'snapshot', value: retained(copy), revision, now };
     } catch { return { status: 'configuration-mismatch' }; }

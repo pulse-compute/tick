@@ -328,6 +328,18 @@ test('the invocation monotonic budget does not reset when visiting another job w
   assert.equal(result.results[1].status, 'not-run');
 });
 
+test('later jobs receive a fresh lease on the original elapsed timeline with a frozen wall and queued timers', async () => {
+  let mono = 0;
+  const f = fixture({ limits: { maxJobsPerTick: 3 }, jobs: ['first', 'second', 'third'].map((id) => job(id, async () => { mono += 70; })) });
+  f.definition.bindings.clock = { nowMs: () => 1000, monotonicMs: () => mono };
+  const result = await createRunner(f.definition, f.runtime).tick(f.invocation());
+  assert.equal(result.status, 'finished'); assert.equal(result.results.length, 3);
+  assert.ok(result.results.every((r) => r.outcome === 'completed' && r.coordination === 'settled'));
+  const claims = f.store.writes.filter((w) => w.value.state === 'leased');
+  assert.deepEqual(claims.map((w) => w.value.leaseExpiresAtMs), [1100, 1170, 1240]);
+  assert.equal(f.timers.size, 0);
+});
+
 test('wall clock rollback after application work leaves the lease for recovery', async () => {
   const f = fixture({ execute: async () => { f.setWall(999); } });
   const result = await f.runner.tick(f.invocation());

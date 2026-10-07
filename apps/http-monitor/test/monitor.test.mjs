@@ -12,7 +12,7 @@ const run = (slot = 0) => ({ id: JSON.stringify(['tick.run.v1', 'monitor-test', 
 const observation = (changes = {}) => ({ schema: 'tick.http.observation.v1', run: run(), attempt: 1, startedAtMs: 1000, observedAtMs: 1010, durationMs: 10, httpStatus: 200, outcome: 'up', ...changes });
 const missing = (code = 'NoSuchKey', headers = {}) => new Response(`<Error><Code>${code}</Code></Error>`, { status: 404, headers });
 
-function fixture({ status = 200, probeThrow = false, lostPut = false, lostClaim = false, lostSettlement = false, unavailableRead = false, pulse } = {}) {
+function fixture({ status = 200, probeThrow = false, lostPut = false, lostClaim = false, lostSettlement = false, unavailableRead = false, readFailureStatus, pulse } = {}) {
   const kv = atomicHttp(), rows = new Map(), effects = [], s3Calls = [], timers = new Set();
   let wall = 1000, mono = 0, ids = 0, settlementLost = false;
   const fixtureTransport = kv.transport();
@@ -30,6 +30,7 @@ function fixture({ status = 200, probeThrow = false, lostPut = false, lostClaim 
     assert.equal(new URL(url).origin, endpoint); assert.equal(init.cache, 'no-store'); assert.equal(init.redirect, 'manual');
     const key = new URL(url).pathname;
     if (init.method === 'GET') {
+      if (readFailureStatus) return new Response('<Error><Code>AccessDenied</Code></Error>', { status: readFailureStatus });
       if (unavailableRead) throw new Error('private-read-payload');
       return rows.has(key) ? new Response(rows.get(key)) : missing();
     }
@@ -103,6 +104,35 @@ test('an indeterminate KV claim grants no authority to probe or read/write appli
 test('an unavailable observation read fails closed before the monitored HTTP request', async () => {
   const f = fixture({ unavailableRead: true }), result = await f.invoke();
   assert.equal(result.results[0].outcome, 'retry'); assert.equal(f.effects.length, 0); assert.equal(f.rows.size, 0);
+});
+
+test('a missing-key permission error or throttled S3 read is unavailable, never absence or a health observation', async () => {
+  for (const readFailureStatus of [403, 429, 503]) {
+    const f = fixture({ readFailureStatus }), result = await f.invoke();
+    assert.equal(result.results[0].outcome, 'retry'); assert.equal(result.results[0].failureCode, 'observation-unavailable');
+    assert.equal(f.effects.length, 0); assert.equal(f.rows.size, 0);
+  }
+});
+
+test('an already sent save can win after cancellation; the successor accepts that first observation', async () => {
+  let saved, releasePut, putStarted, releaseProbe, probeStarted;
+  const pausedPut = new Promise((resolve) => { releasePut = resolve; }), atPut = new Promise((resolve) => { putStarted = resolve; });
+  const pausedProbe = new Promise((resolve) => { releaseProbe = resolve; }), atProbe = new Promise((resolve) => { probeStarted = resolve; });
+  const observations = { async read() { return saved ? { status: 'found', value: saved } : { status: 'absent' }; },
+    async putIfAbsent(value) {
+      if (value.attempt === 1) { putStarted(); await pausedPut; }
+      if (saved) return { status: 'exists' };
+      saved = value; return { status: 'saved' };
+    } };
+  const job = createMonitorJob({ nowMs: () => 1000, monotonicMs: () => 0 }), old = createCooperativeController();
+  const context = { run: run(), attemptToken: 'fixture-owner', deadlineMs: 2000 };
+  const first = job({ ...context, attempt: 1, signal: old.signal }, { observations, probe: { async check() { return { httpStatus: 200 }; } } });
+  const rejected = assert.rejects(first, (error) => error.code === 'monitor-deadline');
+  await atPut; old.abort();
+  const successor = job({ ...context, attempt: 2, signal: createCooperativeController().signal }, { observations,
+    probe: { async check() { probeStarted(); await pausedProbe; return { httpStatus: 503 }; } } });
+  await atProbe; releasePut(); await rejected; releaseProbe(); await successor;
+  assert.equal(saved.attempt, 1); assert.equal(saved.outcome, 'up');
 });
 
 test('saved observation survives an uncertain KV settlement and expired takeover without another probe', async () => {

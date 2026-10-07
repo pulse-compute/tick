@@ -1,0 +1,28 @@
+{
+  "schema": "tick.hardening.regressions.v1",
+  "mode": "synthetic",
+  "certified": false,
+  "baseline": {
+    "commit": "3e0e27d21fc328010e673c842e45965a78cd49c9",
+    "tree": "fa78ac49f6afb91e3a2f6724e972d0a235349eb9",
+    "tests": 87,
+    "pass": 79,
+    "fail": 8
+  },
+  "fixed": {
+    "tests": 87,
+    "pass": 87,
+    "fail": 0
+  },
+  "baselineFailures": [
+    "followed redirects and partial KV responses cannot establish absence or a coherent record",
+    "invalid configuration and writes are rejected before any I/O",
+    "the exact serialized record must be valid; inherited data and custom serialization cannot bypass validation",
+    "S3 declaration and invalid writes reject before I/O with sanitized errors",
+    "partial or expiring NoSuchKey envelopes grant neither absence nor a known missing-revision conflict",
+    "provided-store serialization hooks cannot rewrite the value being assessed or run callbacks during readback",
+    "later jobs receive a fresh lease on the original elapsed timeline with a frozen wall and queued timers",
+    "partially consumed authentication budget spans admission and every job with a frozen wall and delayed timers"
+  ],
+  "note": "Exact baseline tracked source built in a temporary isolated directory with the five current targeted test files copied in. Same test selection passes on fixed source. Implementation-agent reproductions; not independent review."
+}

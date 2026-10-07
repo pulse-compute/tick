@@ -21,10 +21,10 @@ try {
     'dist/bindings.js', 'dist/bindings.d.ts', 'docs/bindings.md', 'docs/conformance.md',
     'dist/internal/bindings.js', 'dist/testing/conformance.js', 'dist/testing/conformance.d.ts',
     'dist/adapters/fastly-trigger.js', 'dist/adapters/fastly-trigger.d.ts',
-    'dist/adapters/fastly-kv.js', 'dist/adapters/fastly-kv.d.ts', 'docs/architecture.md', 'docs/fastly-kv.md', 'dist/adapters/s3.js', 'dist/adapters/s3.d.ts', 'docs/s3.md']) {
+    'dist/adapters/fastly-kv.js', 'dist/adapters/fastly-kv.d.ts', 'docs/architecture.md', 'docs/fastly-kv.md', 'dist/adapters/s3.js', 'dist/adapters/s3.d.ts', 'docs/s3.md', 'docs/operations.md']) {
     assert.ok(files.includes(required), `Missing packed file: ${required}`);
   }
-  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md', 'docs/trigger.md', 'docs/bindings.md', 'docs/conformance.md', 'docs/s3.md'].includes(path) || path.startsWith('dist/')),
+  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md', 'docs/trigger.md', 'docs/bindings.md', 'docs/conformance.md', 'docs/s3.md', 'docs/operations.md'].includes(path) || path.startsWith('dist/')),
     'Proof tools, credentials, examples and dev dependencies must stay out of the package');
   const consumer = join(directory, 'consumer');
   await mkdir(consumer);

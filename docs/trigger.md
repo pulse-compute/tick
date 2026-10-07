@@ -65,6 +65,9 @@ Runner time is capped by the invocation, admission lease, and fixed admission ho
 with a settlement reserve. Clock regression fails closed. In-flight coordination writes
 are awaited; host/backend timeouts must bound network latency. A configured timeout
 cannot preempt synchronous code or retract a write already sent.
+TICK-09 carries the original effective request epoch through admission and the runner,
+including partially spent secret-loading time when the raw wall clock stalls. Sampled
+request exhaustion aborts the parent signal; the runner may report cancellation.
 
 Admission claim and settlement each allow one reconciliation: at most eight store calls
 per request. The runner allows at most eight store calls per visited job, including
