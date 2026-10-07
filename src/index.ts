@@ -183,7 +183,7 @@ export interface TickDefinition<Resources> {
   readonly jobs: readonly JobDefinition<Resources>[];
 }
 
-/** Per-invocation input to the future runner; there is no tick()/createScheduler() export yet. */
+/** Per-invocation input; the experimental runner is exported from the /runner subpath. */
 export interface TickInvocation {
   readonly requestId: string;
   readonly deadlineMs: number;

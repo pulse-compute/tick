@@ -118,6 +118,6 @@ safe integer milliseconds. The deployment must establish the configured skew bou
 
 `isUsable` does not certify current stored ownership or authorize a downstream commit.
 An expired worker can physically overlap its successor, and cancellation cannot undo
-effects already sent. TICK-04 will supply bounded execution; applications still need
+effects already sent. TICK-04 supplies a separate [bounded runner](execution.md); applications still need
 run-based deduplication or their own atomic effect protocol. There is no exactly-once
 execution or delivery guarantee.

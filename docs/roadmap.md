@@ -9,8 +9,8 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 | TICK-00 | TypeScript package contract, binding example, architecture, minimal CI, and documented guarantees/time assumptions. | Astra / Ultra | PR #2 merged; contracts only. |
 | TICK-01 | Authenticated Fastly probe receiver and evidence harness; measure idle continuity, deployment gaps, routing, timeout, and POP arrivals. | Sol 6.1 / High | PR #1 merged; live viability pending. |
 | TICK-02 | Minimal KV adapter plus deployed concurrency, stale-read, lost-response, and takeover proof. | Astra / Ultra | PR #3 merged; HTTP adapter/harness implemented, live gate pending. Native JS SDK binding unsupported. |
-| TICK-03 | Fixed-interval eligibility and ownership transitions; deterministic tests of run identity, recovery, and stale-owner rejection. | Astra / Ultra | Experimental core implemented at user request ahead of 01/02 live gates; deployed guarantees remain blocked. |
-| TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | After 03; pending. |
+| TICK-03 | Fixed-interval eligibility and ownership transitions; deterministic tests of run identity, recovery, and stale-owner rejection. | Astra / Ultra | PR #4 merged; experimental core, deployed guarantees remain blocked on 01/02 gates. |
+| TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | Experimental runner implemented at user request; host/deployed integration pending. |
 | TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | After 04; pending. |
 | TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | After 02–05; pending. |
 | TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | After 06; pending, unless needed earlier as coordination fallback. |
@@ -36,6 +36,8 @@ At the user's request, TICK-03 implements the deterministic protocol against the
 store contract while both gates remain pending. Its tests exercise an atomic reference store
 and injected faults; they do not certify Fastly storage, trigger continuity, or clock bounds.
 The [core notes](core.md) document the experimental API and its authority limits.
+TICK-04 adds [bounded execution](execution.md) against that protocol with injected host
+capabilities. Its local cancellation/recovery tests also leave the live gates pending.
 
 TICK-01's checked-in [evidence status](../proof/evidence/STATUS.md) remains authoritative.
 The existing local results demonstrate receiver/harness behavior; native probe timing,
