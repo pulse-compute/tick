@@ -14,8 +14,8 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 | TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | PR #6 merged; experimental receiver, live integration gate pending. |
 | TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | PR #7 merged; explicit mappings/shared checks and local conformance, live gates unchanged. |
 | TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | PR #8 merged; S3 HTTP candidate, signed guest and nine local cases. Deployed S3 gate pending. |
-| TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | Implemented at user request; standalone consumer, Node/Fastly hosts, optional Pulse shim and local recovery checks. Deployed gates remain pending. |
-| TICK-09 | Independent adversarial review, deployed fault scenarios, focused fixes, operations docs, package/release workflow. | Astra / Ultra review; Sol 6.1 / High fixes | After 07/08; pending. |
+| TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | PR #9 merged; standalone consumer, Node/Fastly hosts, optional Pulse shim and local recovery checks. Deployed gates remain pending. |
+| TICK-09 | Independent adversarial review, deployed fault scenarios, focused fixes, operations docs, package/release workflow. | Astra / Ultra review; Sol 6.1 / High fixes | Local implementation audit/fixes, bounded fault matrix and private artifact workflow implemented. Separate independent reviewer sign-off and actual deployed trials remain pending. |
 
 ## Evidence gates
 
@@ -57,6 +57,11 @@ package exports, KV admission/job state and separate immutable S3 application sn
 Its [evidence status](../apps/http-monitor/evidence/STATUS.md) records isolated packed
 consumption and actual consumer-Wasm fixture results. The optional Pulse shim verifies
 a narrow wiring boundary; no Pulse SDK integration or deployed monitor behavior is certified.
+TICK-09 records an [implementation audit and independent reviewer handoff](../proof/hardening/REVIEW.md),
+fixes reproduced clock/serialization/HTTP-boundary failures, extends actual guest fixtures,
+and adds [operations](operations.md) and [private artifact preparation](release.md).
+Its [new evidence](../proof/hardening/evidence/STATUS.md) does not certify earlier gates,
+substitute an implementation agent for an independent reviewer, or authorize publication.
 
 TICK-01's checked-in [evidence status](../proof/evidence/STATUS.md) remains authoritative.
 The existing local results demonstrate receiver/harness behavior; native probe timing,

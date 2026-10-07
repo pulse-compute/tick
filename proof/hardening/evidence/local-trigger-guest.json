@@ -1,0 +1,38 @@
+{
+  "schema": "tick.trigger.guest-smoke.v1",
+  "mode": "synthetic",
+  "runtime": "viceroy",
+  "passed": true,
+  "burst": {
+    "requests": 16,
+    "admittedSweeps": 1,
+    "visited": 4,
+    "executions": 4,
+    "apiCalls": 49,
+    "admissionCalls": 33,
+    "jobCalls": 16
+  },
+  "cases": [
+    "auth-routing",
+    "duplicate-burst",
+    "lost-admission-reply",
+    "crash-recovery",
+    "cooperative-timeout"
+  ],
+  "totalApiCalls": 96,
+  "distributed": false,
+  "verdict": "inconclusive",
+  "note": "Actual Wasm guest, HTTP KV adapter, cooperative timers and Secret Store against a local atomic HTTP fixture; no deployed/native KV evidence.",
+  "certified": false,
+  "artifact": {
+    "path": "proof/trigger/bin/main.wasm",
+    "bytes": 11875266,
+    "sha256": "4eacbdec8f1d566172f48ae188f074b65a0d51fd98be6e8a7e6538777f6bfc05"
+  },
+  "versions": {
+    "node": "v24.19.0",
+    "viceroy": "viceroy 0.21.1",
+    "jsCompute": "3.45.0",
+    "typescript": "5.9.3"
+  }
+}

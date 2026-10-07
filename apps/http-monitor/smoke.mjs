@@ -1,4 +1,4 @@
-// Five isolated backing domains. Real Wasm/app/SDK, fixture provider semantics only.
+// Isolated backing domains. Real Wasm/app/SDK, fixture provider semantics only.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
@@ -11,16 +11,19 @@ import { observationKey } from './build/resources.js';
 if (process.argv.length !== 4 || process.argv[2] !== '--viceroy') throw new Error('Usage: smoke.mjs --viceroy /path/to/viceroy');
 const results = [];
 const sha = (s) => createHash('sha256').update(s).digest('hex'), hmac = (key, s) => createHmac('sha256', key).update(s).digest();
-for (const scenario of ['up-burst', 'down', 'unreachable', 'lost-save', 'crash-after-save']) {
+for (const scenario of ['up-burst', 'down', 'unreachable', 'lost-save', 'crash-after-save', 'access-denied', 'kv-throttle', 'late-save']) {
   const token = randomBytes(32).toString('base64url'), apiToken = randomBytes(32).toString('base64url');
   const access = randomBytes(10).toString('hex'), secret = randomBytes(32).toString('hex'), session = randomBytes(32).toString('base64url');
   const directory = await mkdtemp(join(tmpdir(), 'tick08-guest-')), kv = new Map(), snapshots = new Map();
-  let generation = 9007199254740993n, kvCalls = 0, s3Calls = 0, probes = 0, signatureFailures = 0, dropped = false;
+  let generation = 9007199254740993n, kvCalls = 0, s3Calls = 0, probes = 0, signatureFailures = 0, dropped = false, delayed = false, lateCommit, successorProbe, lateTimer;
+  const committedLate = new Promise((resolve) => { lateCommit = resolve; });
+  const successorProbing = new Promise((resolve) => { successorProbe = resolve; });
   const api = createServer(async (request, response) => {
     if (request.url === '/' && !request.headers['fastly-key']) { response.writeHead(200).end(); return; }
     kvCalls++;
     try {
       assert.equal(request.headers['fastly-key'], apiToken);
+      if (scenario === 'kv-throttle') { response.writeHead(429).end(); return; }
       const url = new URL(request.url, 'http://fixture'), key = decodeURIComponent(url.pathname.split('/keys/')[1]);
       assert.ok(key.startsWith(settings.monitor.coordinationPrefix) || key.startsWith(settings.monitor.admissionPrefix));
       const current = kv.get(key);
@@ -34,10 +37,11 @@ for (const scenario of ['up-burst', 'down', 'unreachable', 'lost-save', 'crash-a
       kv.set(key, { body, revision: String(++generation) }); response.writeHead(200).end();
     } catch { response.writeHead(500).end(); }
   });
-  const target = createServer((request, response) => {
+  const target = createServer(async (request, response) => {
     if (request.url === '/') { response.writeHead(200).end(); return; }
     probes++; assert.equal(request.url, '/health'); assert.equal(request.method, 'GET');
     if (scenario === 'unreachable') { request.socket.destroy(); return; }
+    if (scenario === 'late-save' && probes === 2) { successorProbe(); await committedLate; response.writeHead(503).end(); return; }
     response.writeHead(scenario === 'down' ? 503 : 200, { 'content-type': 'text/plain' }).end('private-health-body');
   });
   const s3 = createServer(async (request, response) => {
@@ -56,12 +60,22 @@ for (const scenario of ['up-burst', 'down', 'unreachable', 'lost-save', 'crash-a
       let key = hmac('AWS4' + secret, date); for (const part of [region, service, suffix]) key = hmac(key, part);
       assert.equal(hmac(key, `AWS4-HMAC-SHA256\n${request.headers['x-amz-date']}\n${auth[2]}\n${sha(canonical)}`).toString('hex'), auth[4]);
       if (request.method === 'GET') {
+        if (scenario === 'access-denied') { response.writeHead(403).end('<Error><Code>AccessDenied</Code></Error>'); return; }
         if (!snapshots.has(url.pathname)) { response.writeHead(404).end('<Error><Code>NoSuchKey</Code></Error>'); return; }
         response.writeHead(200).end(snapshots.get(url.pathname)); return;
       }
       assert.equal(request.method, 'PUT');
+      if (scenario === 'late-save' && !delayed) {
+        delayed = true;
+        // The provider has the full body; cancellation cannot retract a later commit.
+        await new Promise((resolve) => {
+          lateTimer = setTimeout(resolve, 18000); // Bounded fixture fallback, not an application retry timer.
+          successorProbing.then(() => { clearTimeout(lateTimer); resolve(); });
+        });
+      }
       if (snapshots.has(url.pathname)) { response.writeHead(412).end(); return; }
       snapshots.set(url.pathname, body);
+      if (scenario === 'late-save') lateCommit();
       if (scenario === 'lost-save' && !dropped) { dropped = true; request.socket.destroy(); return; } // Real commit, no HTTP reply.
       response.writeHead(200).end();
     } catch { signatureFailures++; response.writeHead(500).end(); }
@@ -112,24 +126,44 @@ ${secretEntries.map(([key, name]) => `[[local_server.secret_stores.tick08_secret
     }
     const requests = scenario === 'up-burst' ? 16 : 1;
     const replies = await Promise.all(Array.from({ length: requests }, () => send()));
-    assert.ok(replies.every((r) => r.status === 200), JSON.stringify(replies));
+    if (scenario === 'kv-throttle') {
+      assert.equal(replies[0].status, 503); assert.equal(replies[0].body.admission.status, 'unavailable');
+      assert.equal(replies[0].body.metrics.jobReads, 0); assert.equal(probes + s3Calls, 0);
+      results.push({ scenario, passed: true, requests, probes, kvCalls, s3Calls, snapshots: snapshots.size, admission: 'unavailable' });
+      continue;
+    }
+    assert.ok(replies.every((r) => r.status === (scenario === 'late-save' ? 503 : 200)), JSON.stringify(replies));
     const winner = replies.find((r) => r.body.admission?.status === 'owned'); assert.ok(winner);
     let job = winner.body.tick.results[0];
+    if (scenario === 'late-save') {
+      assert.ok(['deadline-exceeded', 'cancelled'].includes(job.outcome)); assert.equal(job.coordination, 'expired');
+      const expiry = Math.max(...[...kv.values()].map((row) => JSON.parse(row.body)).filter((value) => value.state === 'leased').map((value) => value.leaseExpiresAtMs));
+      await new Promise((resolve) => setTimeout(resolve, Math.max(1, expiry + settings.monitor.limits.maxClockSkewMs + 100 - Date.now())));
+      const recovered = await send(); assert.equal(recovered.status, 200); job = recovered.body.tick.results[0]; assert.equal(job.attempt, 2);
+    }
     if (scenario === 'lost-save') {
       assert.equal(job.outcome, 'retry'); assert.equal(job.failureCode, 'observation-indeterminate');
       const wait = Math.max(1100, winner.body.admission.scheduledForMs + settings.monitor.admissionSchedule.everyMs + 100 - Date.now());
       await new Promise((resolve) => setTimeout(resolve, wait));
       const recovered = await send(); assert.equal(recovered.status, 200); job = recovered.body.tick.results[0]; assert.equal(job.attempt, 2);
     }
+    if (scenario === 'access-denied') {
+      assert.equal(job.outcome, 'retry'); assert.equal(job.failureCode, 'observation-unavailable'); assert.equal(job.record.state, 'retryable');
+      assert.equal(probes, 0); assert.equal(snapshots.size, 0); assert.equal(signatureFailures, 0);
+      results.push({ scenario, passed: true, requests, probes, kvCalls, s3Calls, snapshots: 0, outcome: 'retry', recordState: 'retryable' });
+      continue;
+    }
     assert.equal(job.record.state, 'completed'); assert.equal(snapshots.size, 1); assert.equal(signatureFailures, 0);
     const saved = JSON.parse([...snapshots.values()][0]); assert.equal(saved.outcome, scenario === 'down' ? 'down' : scenario === 'unreachable' ? 'unreachable' : 'up');
     assert.equal(JSON.stringify(saved).includes('private-health-body'), false); assert.equal(JSON.stringify(saved).includes(settings.target), false);
-    assert.equal(probes, scenario === 'crash-after-save' ? 0 : 1);
+    assert.equal(probes, scenario === 'crash-after-save' ? 0 : scenario === 'late-save' ? 2 : 1);
+    if (scenario === 'late-save') { assert.equal(saved.attempt, 1); assert.equal(saved.httpStatus, 200); }
     if (scenario === 'crash-after-save') { assert.equal(job.attempt, 2); assert.equal(saved.attempt, 1); }
     if (scenario === 'up-burst') { assert.equal(replies.filter((r) => r.body.admission.status === 'owned').length, 1);
       assert.ok(replies.filter((r) => r.body.admission.status !== 'owned').every((r) => r.body.metrics.jobReads === 0)); }
-    results.push({ scenario, passed: true, requests: requests + (scenario === 'lost-save' ? 1 : 0), probes, kvCalls, s3Calls, snapshots: snapshots.size, outcome: saved.outcome, completedAttempt: job.attempt, storedAttempt: saved.attempt });
+    results.push({ scenario, passed: true, requests: requests + (['lost-save', 'late-save'].includes(scenario) ? 1 : 0), probes, kvCalls, s3Calls, snapshots: snapshots.size, outcome: saved.outcome, completedAttempt: job.attempt, storedAttempt: saved.attempt });
   } finally {
+    clearTimeout(lateTimer); successorProbe(); lateCommit();
     if (guest && guest.exitCode === null) { guest.kill('SIGTERM'); await new Promise((resolve) => guest.once('exit', resolve)); }
     await Promise.all([api, target, s3].map(async (server) => { server.closeAllConnections(); await new Promise((resolve) => server.close(resolve)); }));
     await rm(directory, { recursive: true, force: true });
@@ -137,4 +171,4 @@ ${secretEntries.map(([key, name]) => `[[local_server.secret_stores.tick08_secret
 }
 console.log(JSON.stringify({ schema: 'tick.monitor.guest-smoke.v1', mode: 'synthetic', runtime: 'viceroy', passed: true, certified: false, cases: results,
   signing: 'Every S3 wire request independently verified with Node HMAC, including session/host/path/payload/condition.',
-  note: 'Actual consumer Wasm and host bindings in five isolated atomic fixture domains. No deployed KV/S3, cross-POP or native probe continuity evidence.' }, null, 2));
+  note: 'Actual consumer Wasm and host bindings in eight isolated atomic fixture domains. Late-save commits a received PUT after its guest request expired, while the successor probes. No deployed KV/S3, cross-POP or native probe continuity evidence.' }, null, 2));

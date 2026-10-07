@@ -94,8 +94,8 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
     if (names.has(job.id) || typeof job.execute !== 'function') throw new TypeError('Invalid Tick jobs');
     names.add(job.id);
     const snapshot: JobDefinition<Resources> = Object.freeze({ ...job, schedule: Object.freeze({ ...job.schedule }) });
-    const coordinator = createJobCoordinator({ namespace, job: snapshot, coordination, clock, ids, limits });
-    return { job: snapshot, coordinator };
+    createJobCoordinator({ namespace, job: snapshot, coordination, clock, ids, limits });
+    return snapshot;
   });
   // Validate the binding and limits even for an empty job list.
   if (!jobs.length) createJobCoordinator({ namespace, job: { id: 'validation', schedule: {
@@ -145,6 +145,13 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
       if (now === null) stop('expired');
       return now;
     };
+    // Each coordinator sees the invocation's original elapsed timeline. A later job
+    // cannot start its clock again from an unchanged raw wall time.
+    const invocationClock: Clock = { nowMs() {
+      const now = check();
+      if (now === null) throw new TypeError('Tick invocation expired');
+      return now;
+    }, monotonicMs: clock.monotonicMs };
     const invocation = Object.freeze({ requestId, deadlineMs, signal });
     const results: JobResult[] = [];
     let cancelInvocationTimer: (() => void) | undefined;
@@ -156,7 +163,8 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
       }
       const visits = Math.min(limits.maxJobsPerTick, jobs.length);
       for (let offset = 0; offset < visits && check() !== null; offset++) {
-        const { job, coordinator } = jobs[(startAt + offset) % jobs.length]!;
+        const job = jobs[(startAt + offset) % jobs.length]!;
+        const coordinator = createJobCoordinator({ namespace, job, coordination, clock: invocationClock, ids, limits });
         const claimed = await resolve(coordinator, job.id, await coordinator.claim(invocation), check);
         if (claimed.status !== 'owned') {
           results.push(Object.freeze({ jobId: job.id, status: 'not-run', coordination: claimed.status,

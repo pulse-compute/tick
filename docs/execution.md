@@ -116,6 +116,9 @@ run, or current lease bound minus skew and safety margins. The original invocati
 monotonic budget spans all visited jobs; it does not restart for each claim. Clock
 rollback/regression fails closed. A job must finish and leave time for settlement within
 its current lease. The runner performs no heartbeat renewal.
+TICK-09 also supplies each invocation-local coordinator with that conservative effective
+epoch. A stalled wall clock cannot reset a later job's lease/schedule timeline or produce
+a negative timer delay from mixing raw and elapsed epochs.
 
 Parent cancellation and deadline timers abort the job signal. A timed-out or cancelled
 attempt is left leased for conservative recovery instead of releasing it immediately.

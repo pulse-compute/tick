@@ -1,0 +1,109 @@
+{
+  "schema": "tick.s3.guest-smoke.v1",
+  "mode": "synthetic",
+  "runtime": "viceroy",
+  "passed": true,
+  "signatureVerification": "Independent Node HMAC verification of each guest request including session token, conditions, host, path and payload",
+  "authAndRouting": [
+    200,
+    401,
+    405,
+    400
+  ],
+  "providerCalls": 87,
+  "retainedKeys": 5,
+  "conformance": {
+    "schema": "tick.store.conformance.v1",
+    "mode": "synthetic",
+    "status": "observed",
+    "certified": false,
+    "cases": [
+      {
+        "name": "create-race",
+        "status": "observed",
+        "reads": 8,
+        "writes": 4
+      },
+      {
+        "name": "replace-race",
+        "status": "observed",
+        "reads": 4,
+        "writes": 4
+      },
+      {
+        "name": "stale-revision",
+        "status": "observed",
+        "reads": 4,
+        "writes": 1
+      },
+      {
+        "name": "revision-on-missing",
+        "status": "observed",
+        "reads": 4,
+        "writes": 1
+      },
+      {
+        "name": "retained-records",
+        "status": "observed",
+        "reads": 20,
+        "writes": 4
+      },
+      {
+        "name": "lost-reply",
+        "status": "observed",
+        "reads": 12,
+        "writes": 2
+      },
+      {
+        "name": "unavailable-transport",
+        "status": "observed",
+        "reads": 5,
+        "writes": 1
+      }
+    ],
+    "calls": {
+      "reads": 57,
+      "writes": 17
+    },
+    "bounds": {
+      "reads": 165,
+      "writes": 17
+    }
+  },
+  "cases": [
+    {
+      "name": "stale-owner",
+      "status": "observed",
+      "operations": 8
+    },
+    {
+      "name": "lost-superseded",
+      "status": "observed",
+      "operations": 7
+    }
+  ],
+  "evidence": {
+    "operations": 89,
+    "completeTrace": true,
+    "distributed": false,
+    "providerTrace": true,
+    "racePops": {
+      "create-race": [],
+      "replace-race": []
+    }
+  },
+  "status": "inconclusive",
+  "certified": false,
+  "note": "Actual Wasm guest, Secret Store, WebCrypto SigV4 and fixed backend against a local atomic S3 fixture. No deployed AWS evidence.",
+  "artifact": {
+    "path": "proof/s3/bin/main.wasm",
+    "bytes": 11690266,
+    "sha256": "57b0813cd2f44a94089aedb73dd71ca6f00baac4d8844ad6b99cf67f765e67f3"
+  },
+  "versions": {
+    "node": "v24.19.0",
+    "viceroy": "viceroy 0.21.1",
+    "jsCompute": "3.45.0",
+    "typescript": "5.9.3"
+  }
+}

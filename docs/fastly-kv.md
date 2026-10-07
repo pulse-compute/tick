@@ -1,5 +1,9 @@
 # TICK-02: Fastly KV coordination candidate
 
+TICK-09 rejects followed redirects and partial responses before absence/value classification,
+including 404, and malformed UTF-16 keys before credentials/I/O. Coordination writes use
+shared data-only capture: inherited required fields and root/run `toJSON` hooks reject.
+
 **Live verdict: INCONCLUSIVE.** This ticket provides an HTTP KV adapter and a bounded
 proof harness. No deployed concurrency result has been collected. The native JavaScript
 SDK path is unsupported by the pinned SDK; the HTTP path is explicit, not an automatic

@@ -14,3 +14,4 @@ proof/s3/bin/
 proof/s3/evidence/live/
 apps/http-monitor/build/
 apps/http-monitor/evidence/live/
+proof/hardening/evidence/live/

@@ -39,7 +39,8 @@
     "test:monitor": "npm run monitor:build && node --test apps/http-monitor/test/*.test.mjs && node apps/http-monitor/standalone-check.mjs",
     "monitor:guest:build": "npm run monitor:build && js-compute-runtime apps/http-monitor/fastly.js apps/http-monitor/bin/main.wasm",
     "monitor:guest:smoke": "node apps/http-monitor/smoke.mjs",
-    "monitor:node": "npm run monitor:build && node apps/http-monitor/node.mjs"
+    "monitor:node": "npm run monitor:build && node apps/http-monitor/node.mjs",
+    "package:artifact": "node scripts/prepare-artifact.mjs"
   },
   "devDependencies": {
     "@fastly/js-compute": "3.45.0",
@@ -103,7 +104,8 @@
     "docs/trigger.md",
     "docs/bindings.md",
     "docs/conformance.md",
-    "docs/s3.md"
+    "docs/s3.md",
+    "docs/operations.md"
   ],
   "sideEffects": false
 }

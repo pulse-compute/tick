@@ -92,6 +92,18 @@ test('numeric revisions and malformed write statuses fail the adapter contract',
   }
 });
 
+test('provided-store serialization hooks cannot rewrite the value being assessed or run callbacks during readback', async () => {
+  const f = atomicHttp(); let hooks = 0;
+  const wrapped = () => { const store = f.store(); return { ...store, async read(key) {
+    const result = await store.read(key);
+    if (result.status === 'found') result.value = Object.assign(Object.create({ toJSON() { hooks++; return { ...result.value }; } }), result.value);
+    return result;
+  } }; };
+  const report = await runStoreConformance(options(f, { writers: [wrapped(), wrapped()] }));
+  assert.equal(report.status, 'failed'); assert.equal(report.cases[0].reason, 'invalid-read-result');
+  assert.equal(hooks, 0);
+});
+
 test('a read/put emulation with two acknowledged creates fails even when a third contender throws', async () => {
   for (const withThrow of [false, true]) {
     const f = atomicHttp(), original = f.store(), rows = new Map();

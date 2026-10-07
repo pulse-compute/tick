@@ -1,0 +1,28 @@
+{
+  "schema": "tick.private-artifact.guards.v1",
+  "mode": "synthetic",
+  "passed": true,
+  "cases": [
+    {
+      "case": "output-must-be-under-pkg",
+      "passed": true
+    },
+    {
+      "case": "private-package-required",
+      "passed": true
+    },
+    {
+      "case": "runtime-dependencies-forbidden",
+      "passed": true
+    },
+    {
+      "case": "dirty-checkout",
+      "passed": true
+    },
+    {
+      "case": "output-already-exists",
+      "passed": true
+    }
+  ],
+  "note": "Actual artifact CLI in isolated committed Git fixtures. All five policy errors rejected before build/pack/network. Successful real-candidate preparation is checked separately and in CI."
+}

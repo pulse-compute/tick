@@ -87,11 +87,22 @@ test('missing, malformed, oversized, or incompatible reads fail closed', async (
   assert.deepEqual(await make(async () => new Response(null, { status: 404 })).read('job'), { status: 'absent' });
 });
 
+test('followed redirects and partial KV responses cannot establish absence or a coherent record', async () => {
+  for (const status of [200, 404]) {
+    const response = new Response(status === 200 ? JSON.stringify(record()) : null, { status, headers: { generation: revision } });
+    Object.defineProperty(response, 'redirected', { value: true });
+    assert.equal((await make(async () => response).read('job')).status, 'unavailable');
+  }
+  const partial = found(); partial.headers.set('content-range', 'bytes 0-100/200');
+  assert.equal((await make(async () => partial).read('job')).status, 'unavailable');
+});
+
 test('invalid configuration and writes are rejected before any I/O', async () => {
   let calls = 0;
   const store = make(async () => { calls++; return found(); });
-  for (const key of ['', '.', '..', '.well-known/acme-challenge/x', 'x?y', 'x\ny', 'é'.repeat(513)]) {
+  for (const key of ['', '.', '..', '.well-known/acme-challenge/x', 'x?y', 'x\ny', 'é'.repeat(513), '\ud800']) {
     await assert.rejects(store.read(key), /Invalid Fastly KV key/);
+    await assert.rejects(store.compareAndSwap({ key, expected: { kind: 'absent' }, value: record() }), /Invalid Fastly KV conditional write/);
   }
   for (const expected of [undefined, { kind: 'overwrite' }, { kind: 'revision', revision: 9007199254740992 }, { kind: 'revision', revision: '1e9' }, { kind: 'revision', revision: '0' }]) {
     await assert.rejects(store.compareAndSwap({ key: 'job', expected, value: record() }), /Invalid Fastly KV conditional write/);
@@ -126,7 +137,9 @@ test('the exact serialized record must be valid; inherited data and custom seria
   const inherited = Object.create(record());
   const serialized = Object.assign(Object.create({ toJSON() { return {}; } }), record());
   const throws = Object.assign(Object.create({ toJSON() { throw new Error('secret serialization failure'); } }), record());
-  for (const value of [inherited, serialized, throws]) {
+  const switches = Object.assign(Object.create({ toJSON() { return record({ mutationId: 'different-valid-mutation' }); } }), record());
+  const nested = record({ run: Object.assign(Object.create({ toJSON() { return record().run; } }), record().run) });
+  for (const value of [inherited, serialized, throws, switches, nested]) {
     await assert.rejects(store.compareAndSwap({ key: 'job', expected: { kind: 'absent' }, value }),
       { name: 'TypeError', message: 'Invalid Fastly KV conditional write' });
   }

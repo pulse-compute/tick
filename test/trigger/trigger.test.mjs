@@ -128,6 +128,21 @@ test('budget consumed by authentication cannot start admission or work', async (
   assert.equal((await handler(f.request())).status, 503); assert.equal(f.calls.length, 0); assert.equal(f.timers.size, 0);
 });
 
+test('partially consumed authentication budget spans admission and every job with a frozen wall and delayed timers', async () => {
+  let mono = 0, executions = 0;
+  const f = fixture({ jobCount: 2, maxJobsPerTick: 2, gateLimits: { leaseMs: 8000 }, jobLimits: { leaseMs: 8000 },
+    execute: async () => { executions++; mono += 1100; } });
+  f.definition.bindings.clock = { nowMs: () => 1000, monotonicMs: () => mono };
+  const handler = createFastlyTrigger({ ...f.options, loadToken: async () => { mono += 4000; return 't'.repeat(40); } });
+  // Timer callbacks intentionally remain queued; sampled budgets must reject further work.
+  const response = await handler(f.request()), result = await response.json();
+  assert.equal(response.status, 503); assert.equal(executions, 1);
+  // Trigger exhaustion aborts the runner's parent; the cancellation signal carries no reason.
+  assert.equal(result.tick.status, 'cancelled'); assert.equal(result.tick.results[0].outcome, 'cancelled');
+  assert.equal(f.calls.filter((c) => c.kind === 'write' && c.key.startsWith('jobs/')).length, 1);
+  assert.equal(f.timers.size, 0);
+});
+
 test('late admitted writes cannot start job scanning', async () => {
   const f = fixture({ gateLimits: { leaseMs: 100 } });
   f.store.writeHook = async () => { f.advance(95); return { status: 'applied' }; };

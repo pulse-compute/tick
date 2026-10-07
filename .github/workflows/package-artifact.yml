@@ -1,12 +1,11 @@
-name: Tick contracts and proof
+name: Private Tick package artifact
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  contracts-and-proof:
+  private-artifact:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,4 +22,10 @@ jobs:
       - run: npm run proof:trigger:build
       - run: npm run proof:s3:build
       - run: npm run monitor:guest:build
-      - run: npm run package:artifact -- --output pkg/ci-validation
+      - run: npm run package:artifact -- --output pkg/private-preview
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tick-private-preview-${{ github.sha }}
+          path: pkg/private-preview/*
+          if-no-files-found: error
+          retention-days: 30

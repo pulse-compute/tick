@@ -1,4 +1,4 @@
-import { isCoordinationRecord as isRecord } from '../internal/records.js';
+import { isCoordinationRecord as isRecord, serializeCoordinationRecord } from '../internal/records.js';
 import { isNativeSignal } from '../internal/bindings.js';
 import type { ConditionalWrite, CoordinationStore, ReadResult, StoreRevision, WriteResult } from '../index.js';
 
@@ -19,10 +19,13 @@ const isRevision = (value: unknown): value is string => typeof value === 'string
   && (value.length < 20 || value <= '18446744073709551615');
 
 function validateKey(key: string): void {
-  if (typeof key !== 'string' || !key || key === '.' || key === '..' || /[#;?^|\n\r]/.test(key)
+  try {
+    if (typeof key !== 'string' || !key || key === '.' || key === '..' || /[#;?^|\n\r]/.test(key)
       || key.startsWith('.well-known/acme-challenge/') || new TextEncoder().encode(key).length > 1024) {
-    throw new TypeError('Invalid Fastly KV key');
-  }
+      throw new TypeError();
+    }
+    encodeURIComponent(key); // Reject malformed UTF-16 before credential resolution/I/O.
+  } catch { throw new TypeError('Invalid Fastly KV key'); }
 }
 
 async function discard(response: Response): Promise<void> {
@@ -91,9 +94,10 @@ export function createFastlyKvStore(options: FastlyKvOptions): CoordinationStore
       validateKey(key);
       try {
         const response = await request(key, 'GET');
+        if (response.redirected || response.headers.has('content-range')) { await discard(response); return { status: 'unavailable' }; }
         if (response.status === 404) { await discard(response); return { status: 'absent' }; }
         const revision = response.headers.get('generation');
-        if (response.status !== 200 || response.redirected || !isRevision(revision)) {
+        if (response.status !== 200 || !isRevision(revision)) {
           await discard(response); return { status: 'unavailable' };
         }
         const value: unknown = JSON.parse(await readBounded(response));
@@ -116,8 +120,7 @@ export function createFastlyKvStore(options: FastlyKvOptions): CoordinationStore
           if (!isRevision(revision)) throw new TypeError();
           expected = { kind, revision };
         } else throw new TypeError();
-        if (!isRecord(write.value)) throw new TypeError();
-        body = JSON.stringify(write.value);
+        body = serializeCoordinationRecord(write.value);
         if (new TextEncoder().encode(body).length > MAX_RECORD_BYTES || !isRecord(JSON.parse(body))) throw new TypeError();
       } catch {
         throw new TypeError('Invalid Fastly KV conditional write');
