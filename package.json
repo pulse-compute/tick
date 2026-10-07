@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof && npm run test:s3-proof",
+    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof && npm run test:s3-proof && npm run test:monitor",
     "build": "tsc -p tsconfig.json",
     "proof:local": "node proof/scripts/local-server.mjs",
     "proof:burst": "node proof/scripts/burst.mjs",
@@ -34,7 +34,12 @@
     "test:s3-proof": "node --test proof/s3/test/*.test.mjs",
     "proof:s3:build": "npm run build && js-compute-runtime proof/s3/src/fastly.js proof/s3/bin/main.wasm",
     "proof:s3": "node proof/s3/run.mjs",
-    "proof:s3:smoke": "node proof/s3/smoke.mjs"
+    "proof:s3:smoke": "node proof/s3/smoke.mjs",
+    "monitor:build": "npm run build && tsc -p apps/http-monitor/tsconfig.json",
+    "test:monitor": "npm run monitor:build && node --test apps/http-monitor/test/*.test.mjs && node apps/http-monitor/standalone-check.mjs",
+    "monitor:guest:build": "npm run monitor:build && js-compute-runtime apps/http-monitor/fastly.js apps/http-monitor/bin/main.wasm",
+    "monitor:guest:smoke": "node apps/http-monitor/smoke.mjs",
+    "monitor:node": "npm run monitor:build && node apps/http-monitor/node.mjs"
   },
   "devDependencies": {
     "@fastly/js-compute": "3.45.0",

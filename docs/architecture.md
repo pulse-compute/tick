@@ -15,6 +15,9 @@ TICK-06 adds [shared binding validation and logical mappings](bindings.md) plus 
 There is still no deployed ownership proof or autonomous scheduling loop.
 TICK-07 adds an explicit [S3 conditional-write candidate](s3.md) and signed conformance
 guest. Local results do not establish its pending deployed coordination gate.
+TICK-08 adds a standalone [HTTP monitor consumer](../apps/http-monitor/README.md) with
+KV coordination and separate immutable S3 health snapshots. It uses public exports;
+the example and optional Pulse probe shim add no package API or runtime dependency.
 
 ## Boundaries and bindings
 

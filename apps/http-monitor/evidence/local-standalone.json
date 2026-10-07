@@ -1,0 +1,12 @@
+{
+  "schema": "tick.monitor.standalone.v1",
+  "passed": true,
+  "mode": "synthetic",
+  "installed": "@pulse-compute/tick@0.0.0",
+  "pulseDependencies": 0,
+  "providerSdkDependencies": 0,
+  "probes": 1,
+  "retainedObservations": 1,
+  "note": "Copied TypeScript sources compiled and ran with only the offline packed Tick package in an isolated consumer.",
+  "node": "v24.19.0"
+}

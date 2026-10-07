@@ -32,5 +32,5 @@ export function atomicHttp() {
     };
   }
   const store = (options = {}) => createFastlyKvStore({ storeId: 'test-store', token: async () => 'fixture-credential', fetch: transport(options) });
-  return { rows, calls, store };
+  return { rows, calls, store, transport };
 }

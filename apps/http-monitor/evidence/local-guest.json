@@ -1,0 +1,86 @@
+{
+  "schema": "tick.monitor.guest-smoke.v1",
+  "mode": "synthetic",
+  "runtime": "viceroy",
+  "passed": true,
+  "certified": false,
+  "cases": [
+    {
+      "scenario": "up-burst",
+      "passed": true,
+      "requests": 16,
+      "probes": 1,
+      "kvCalls": 34,
+      "s3Calls": 2,
+      "snapshots": 1,
+      "outcome": "up",
+      "completedAttempt": 1,
+      "storedAttempt": 1
+    },
+    {
+      "scenario": "down",
+      "passed": true,
+      "requests": 1,
+      "probes": 1,
+      "kvCalls": 8,
+      "s3Calls": 2,
+      "snapshots": 1,
+      "outcome": "down",
+      "completedAttempt": 1,
+      "storedAttempt": 1
+    },
+    {
+      "scenario": "unreachable",
+      "passed": true,
+      "requests": 1,
+      "probes": 1,
+      "kvCalls": 8,
+      "s3Calls": 2,
+      "snapshots": 1,
+      "outcome": "unreachable",
+      "completedAttempt": 1,
+      "storedAttempt": 1
+    },
+    {
+      "scenario": "lost-save",
+      "passed": true,
+      "requests": 2,
+      "probes": 1,
+      "kvCalls": 16,
+      "s3Calls": 3,
+      "snapshots": 1,
+      "outcome": "up",
+      "completedAttempt": 2,
+      "storedAttempt": 1
+    },
+    {
+      "scenario": "crash-after-save",
+      "passed": true,
+      "requests": 1,
+      "probes": 0,
+      "kvCalls": 8,
+      "s3Calls": 1,
+      "snapshots": 1,
+      "outcome": "up",
+      "completedAttempt": 2,
+      "storedAttempt": 1
+    }
+  ],
+  "signing": "Every S3 wire request independently verified with Node HMAC, including session/host/path/payload/condition.",
+  "note": "Actual consumer Wasm and host bindings in five isolated atomic fixture domains. No deployed KV/S3, cross-POP or native probe continuity evidence.",
+  "artifact": {
+    "path": "apps/http-monitor/bin/main.wasm",
+    "sha256": "43a0a66e7025df5aff8eea2043f96072d57b45ceecbcf495d61ba667b19a333a",
+    "bytes": 11959830
+  },
+  "versions": {
+    "node": "v24.19.0",
+    "viceroy": "viceroy 0.21.1",
+    "jsCompute": "3.45.0",
+    "typescript": "5.9.3"
+  },
+  "faults": {
+    "lost-save": "Fixture conditional commit followed by socket close without an HTTP reply.",
+    "crash-after-save": "Explicitly seeded expired KV lease and immutable first-attempt S3 snapshot; not an observed platform crash."
+  }
+}

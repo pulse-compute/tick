@@ -1,0 +1,55 @@
+manifest_version = 3
+name = "tick-http-monitor"
+description = "One HTTP monitor: KV coordination, immutable S3 observations"
+language = "javascript"
+
+[scripts]
+build = "npm --prefix ../.. run monitor:guest:build"
+
+[local_server.backends.fastly_api]
+url = "https://api.fastly.com"
+[local_server.backends.monitored]
+url = "https://monitor-target.example"
+[local_server.backends.observations]
+url = "https://monitor-observations.s3.us-east-1.amazonaws.com"
+
+[[local_server.secret_stores.tick08_secrets]]
+key = "probe-token"
+env = "TICK08_PROBE_TOKEN"
+[[local_server.secret_stores.tick08_secrets]]
+key = "fastly-api-token"
+env = "TICK08_FASTLY_API_TOKEN"
+[[local_server.secret_stores.tick08_secrets]]
+key = "aws-access-key-id"
+env = "TICK08_AWS_ACCESS_KEY_ID"
+[[local_server.secret_stores.tick08_secrets]]
+key = "aws-secret-access-key"
+env = "TICK08_AWS_SECRET_ACCESS_KEY"
+[[local_server.secret_stores.tick08_secrets]]
+key = "aws-session-token"
+env = "TICK08_AWS_SESSION_TOKEN"
+
+[setup.backends.fastly_api]
+address = "api.fastly.com"
+port = 443
+description = "Explicit KV HTTP API; verify TLS/Host and bounded timeouts"
+[setup.backends.monitored]
+address = "monitor-target.example"
+port = 443
+description = "Replace with configured monitor target; verify TLS/Host and bounded timeouts"
+[setup.backends.observations]
+address = "monitor-observations.s3.us-east-1.amazonaws.com"
+port = 443
+description = "Replace with explicit S3 bucket host; verify TLS/SNI/Host and bounded timeouts"
+
+[setup.secret_stores.tick08_secrets]
+[setup.secret_stores.tick08_secrets.entries.probe-token]
+description = "Dedicated trigger token, 32-256 base64url characters"
+[setup.secret_stores.tick08_secrets.entries.fastly-api-token]
+description = "Scoped token for the coordination KV store"
+[setup.secret_stores.tick08_secrets.entries.aws-access-key-id]
+description = "Scoped observation writer access ID"
+[setup.secret_stores.tick08_secrets.entries.aws-secret-access-key]
+description = "Scoped observation writer secret"
+[setup.secret_stores.tick08_secrets.entries.aws-session-token]
+description = "Temporary credential session token, empty only when not using a session"

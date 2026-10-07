@@ -13,8 +13,8 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 | TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | PR #5 merged; experimental runner, deployed guarantees pending. |
 | TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | PR #6 merged; experimental receiver, live integration gate pending. |
 | TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | PR #7 merged; explicit mappings/shared checks and local conformance, live gates unchanged. |
-| TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | Implemented at user request; S3 HTTP candidate, signed guest and nine local cases. Deployed S3 gate pending. |
-| TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | After 06; needs 07 only if coordinating via S3. |
+| TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | PR #8 merged; S3 HTTP candidate, signed guest and nine local cases. Deployed S3 gate pending. |
+| TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | Implemented at user request; standalone consumer, Node/Fastly hosts, optional Pulse shim and local recovery checks. Deployed gates remain pending. |
 | TICK-09 | Independent adversarial review, deployed fault scenarios, focused fixes, operations docs, package/release workflow. | Astra / Ultra review; Sol 6.1 / High fixes | After 07/08; pending. |
 
 ## Evidence gates
@@ -52,6 +52,11 @@ TICK-07 adds the [S3 candidate](s3.md), explicit signed transport mapping and
 [deployed conformance driver](../proof/s3/README.md). Its [evidence status](../proof/s3/evidence/STATUS.md)
 records only local fixture/Wasm observations until actual AWS/cross-POP results exist.
 It does not establish a proven fallback for the pending KV gate.
+TICK-08 adds a [practical HTTP monitor](../apps/http-monitor/README.md) using public
+package exports, KV admission/job state and separate immutable S3 application snapshots.
+Its [evidence status](../apps/http-monitor/evidence/STATUS.md) records isolated packed
+consumption and actual consumer-Wasm fixture results. The optional Pulse shim verifies
+a narrow wiring boundary; no Pulse SDK integration or deployed monitor behavior is certified.
 
 TICK-01's checked-in [evidence status](../proof/evidence/STATUS.md) remains authoritative.
 The existing local results demonstrate receiver/harness behavior; native probe timing,
