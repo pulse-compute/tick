@@ -42,7 +42,7 @@ From the repository root:
 ```sh
 npm ci
 npm test
-npm run build
+npm run proof:build
 # Optional: Node-only end-to-end smoke test
 npm run proof:smoke
 # Or test the compiled guest with a locally installed Viceroy binary:

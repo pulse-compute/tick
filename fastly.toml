@@ -4,7 +4,7 @@ description = "Bounded Fastly trigger viability proof; not a scheduler"
 language = "javascript"
 
 [scripts]
-build = "npm run build"
+build = "npm run proof:build"
 
 [[local_server.secret_stores.tick_secrets]]
 key = "probe-token"

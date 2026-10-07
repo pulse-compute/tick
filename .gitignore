@@ -5,3 +5,5 @@ pkg/
 .env.*
 *.local.json
 proof/evidence/live/
+dist/
+*.tgz
