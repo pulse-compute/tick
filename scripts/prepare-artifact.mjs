@@ -10,7 +10,7 @@ const errors = new Set(['usage', 'output-must-be-under-pkg', 'dirty-checkout', '
   'runtime-dependencies-forbidden', 'unexpected-package-file', 'missing-export', 'checkout-changed', 'output-already-exists']);
 const git = (...args) => run('git', args).trim();
 const clean = () => { if (git('status', '--porcelain', '--untracked-files=normal')) fail('dirty-checkout'); };
-const docs = ['architecture', 'fastly-kv', 'core', 'execution', 'trigger', 'bindings', 'conformance', 's3', 'operations'];
+const docs = ['architecture', 'fastly-kv', 'core', 'execution', 'trigger', 'bindings', 'conformance', 's3', 'operations', 'release'];
 try {
   const args = process.argv.slice(2);
   if (args.length !== 2 || args[0] !== '--output' || !args[1]) fail('usage');

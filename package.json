@@ -3,12 +3,22 @@
   "version": "0.0.0",
   "private": true,
   "description": "Experimental interval coordination from unreliable triggers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pulse-compute/tick.git"
+  },
+  "homepage": "https://github.com/pulse-compute/tick#readme",
+  "bugs": {
+    "url": "https://github.com/pulse-compute/tick/issues"
+  },
+  "keywords": ["edge", "fastly", "interval", "coordination", "kv", "s3"],
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof && npm run test:s3-proof && npm run test:monitor",
+    "check": "npm test && npm run proof:smoke",
+    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof && npm run test:s3-proof && npm run test:monitor && npm run test:release",
     "build": "tsc -p tsconfig.json",
     "proof:local": "node proof/scripts/local-server.mjs",
     "proof:burst": "node proof/scripts/burst.mjs",
@@ -40,7 +50,9 @@
     "monitor:guest:build": "npm run monitor:build && js-compute-runtime apps/http-monitor/fastly.js apps/http-monitor/bin/main.wasm",
     "monitor:guest:smoke": "node apps/http-monitor/smoke.mjs",
     "monitor:node": "npm run monitor:build && node apps/http-monitor/node.mjs",
-    "package:artifact": "node scripts/prepare-artifact.mjs"
+    "package:artifact": "node scripts/prepare-artifact.mjs",
+    "package:release": "node scripts/prepare-release.mjs",
+    "test:release": "node --test test/release/*.test.mjs"
   },
   "devDependencies": {
     "@fastly/js-compute": "3.45.0",
@@ -105,7 +117,8 @@
     "docs/bindings.md",
     "docs/conformance.md",
     "docs/s3.md",
-    "docs/operations.md"
+    "docs/operations.md",
+    "docs/release.md"
   ],
   "sideEffects": false
 }

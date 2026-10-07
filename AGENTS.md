@@ -36,8 +36,10 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
   source hashes and a fresh output; no mode/manifest/local pass grants release authority.
 - Keep changes within the named ticket. Do not add queues, cron syntax, workflow engines,
   dashboard UI, background daemons, or an Uptime Kuma port as incidental work.
-- Package naming is provisional. Keep `private: true`; no publication/release is authorized
-  by an ordinary implementation ticket. Do not merge a PR without the user's instruction.
+- Keep source `private: true` and `0.0.0`. The user-requested manual npm workflow stages a
+  versioned publishable tarball without changing source metadata. Read `docs/release.md`
+  before changing it; creating the workflow does not authorize dispatching a real publish.
+  Do not merge a PR without the user's instruction.
 
 ## Invariants
 

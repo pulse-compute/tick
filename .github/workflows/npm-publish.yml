@@ -1,0 +1,72 @@
+name: Publish Tick to npm
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Exact version to publish (example: 0.1.0-beta.1)'
+        required: true
+        type: string
+      tag:
+        description: npm dist-tag
+        required: true
+        default: beta
+        type: choice
+        options: [beta, next, latest]
+      dry_run:
+        description: Prepare and validate without publishing
+        required: true
+        default: true
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: tick-npm-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && github.repository == 'pulse-compute/tick'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: Validate release inputs and npm version
+        run: node scripts/prepare-release.mjs --validate
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm run proof:build
+      - run: npm run proof:kv:build
+      - run: npm run proof:trigger:build
+      - run: npm run proof:s3:build
+      - run: npm run monitor:guest:build
+      - name: Prepare exact release tarball
+        run: npm run package:release -- --output pkg/npm-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tick-npm-${{ inputs.version }}-${{ github.sha }}
+          path: pkg/npm-release/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Check npm publish without uploading
+        run: npm publish pkg/npm-release/*.tgz --dry-run --ignore-scripts --access public --tag "$RELEASE_TAG" --registry https://registry.npmjs.org
+      - name: Publish exact tarball
+        if: ${{ !inputs.dry_run }}
+        run: npm publish pkg/npm-release/*.tgz --ignore-scripts --access public --tag "$RELEASE_TAG" --registry https://registry.npmjs.org
+        env:
+          # npm prefers configured OIDC; this optional token supports bootstrap/fallback.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # npm provenance is unavailable for this private source repository.
+          NPM_CONFIG_PROVENANCE: 'false'
