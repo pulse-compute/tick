@@ -1,0 +1,32 @@
+{
+  "schema": "tick.smoke.v1",
+  "mode": "synthetic",
+  "runtime": "viceroy",
+  "passed": true,
+  "authAndRouting": [
+    200,
+    401,
+    405,
+    404
+  ],
+  "burst": {
+    "schema": "tick.burst.v1",
+    "mode": "synthetic",
+    "requested": 100,
+    "concurrency": 20,
+    "completed": 100,
+    "successful": 100,
+    "uniqueRequestIds": 100,
+    "clientLatencyMs": {
+      "p50": 22.354911999999786,
+      "p95": 84.92746299999999,
+      "max": 101.06739299999981
+    },
+    "statuses": {
+      "200": 100
+    },
+    "cacheHeaders": [],
+    "note": "Synthetic manual requests; not native healthcheck or multi-POP evidence."
+  },
+  "note": "Local guest/handler validation only; no native Fastly probe or idle evidence."
+}

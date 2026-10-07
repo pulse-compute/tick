@@ -1,0 +1,21 @@
+{
+  "name": "@pulse-compute/tick",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TICK-01 Fastly trigger viability proof; package name provisional",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test proof/test/*.test.mjs",
+    "build": "js-compute-runtime proof/src/fastly.js bin/main.wasm",
+    "proof:local": "node proof/scripts/local-server.mjs",
+    "proof:burst": "node proof/scripts/burst.mjs",
+    "proof:analyze": "node proof/scripts/analyze.mjs",
+    "proof:smoke": "node proof/scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@fastly/js-compute": "3.45.0"
+  }
+}
