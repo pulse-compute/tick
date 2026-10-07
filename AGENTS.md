@@ -5,9 +5,13 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 ## Scope and truth
 
 - Read `docs/architecture.md` and the current ticket in `docs/roadmap.md` first.
-- TICK-00 is a draft contract and package foundation. It does not ship a runner or adapter.
+- TICK-00 is a draft contract and package foundation. TICK-02 adds an explicit HTTP KV
+  adapter candidate; there is still no scheduler or supported native JavaScript KV adapter.
+- Read `docs/fastly-kv.md` before changing the adapter or coordination proof. Keep the
+  HTTP API and native host paths distinct; preserve full revision strings end to end.
 - TICK-01's live gate remains inconclusive until deployed evidence meets its runbook.
   A passing mock, Viceroy run, or declaration check cannot close a production proof gate.
+- TICK-02's coordination gate also remains inconclusive without deployed evidence.
 - Keep changes within the named ticket. Do not add queues, cron syntax, workflow engines,
   dashboard UI, background daemons, or an Uptime Kuma port as incidental work.
 - Package naming is provisional. Keep `private: true`; no publication/release is authorized
@@ -33,6 +37,7 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 - Run `npm test`: typechecked examples/rejection cases, packed ESM/TypeScript consumption,
   and the existing focused proof tests.
 - Run `npm run proof:build` when changing the proof, Fastly build command, lockfile, or CI.
+  Run `npm run proof:kv:build` when changing the KV adapter or its guest proof.
   Use the Viceroy smoke runner when changing guest runtime behavior.
 - Preserve historical evidence as historical. Record new results separately and distinguish
   local validation from deployed observations. Do not rewrite a pending gate into a pass.
