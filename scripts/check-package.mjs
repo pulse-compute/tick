@@ -16,10 +16,11 @@ try {
   const files = packed.files.map((entry) => entry.path);
   for (const required of ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts',
     'dist/core.js', 'dist/core.d.ts', 'dist/internal/records.js', 'docs/core.md',
+    'dist/runner.js', 'dist/runner.d.ts', 'docs/execution.md',
     'dist/adapters/fastly-kv.js', 'dist/adapters/fastly-kv.d.ts', 'docs/architecture.md', 'docs/fastly-kv.md']) {
     assert.ok(files.includes(required), `Missing packed file: ${required}`);
   }
-  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md'].includes(path) || path.startsWith('dist/')),
+  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md'].includes(path) || path.startsWith('dist/')),
     'Proof tools, credentials, examples and dev dependencies must stay out of the package');
   const consumer = join(directory, 'consumer');
   await mkdir(consumer);
@@ -28,10 +29,13 @@ try {
   await writeFile(join(consumer, 'smoke.mjs'), `import * as tick from '@pulse-compute/tick';
 import { createFastlyKvStore } from '@pulse-compute/tick/adapters/fastly-kv';
 import { createJobCoordinator, latestSlot } from '@pulse-compute/tick/core';
+import { createRunner, JobFailure } from '@pulse-compute/tick/runner';
 import assert from 'node:assert/strict';
 assert.deepEqual(Object.keys(tick), ['TICK_CONTRACT_VERSION']);
 assert.equal(tick.TICK_CONTRACT_VERSION, 1);
 assert.equal(typeof createJobCoordinator, 'function');
+assert.equal(typeof createRunner, 'function');
+assert.equal(new JobFailure('permanent', 'invalid-target').disposition, 'permanent');
 assert.equal(latestSlot({ kind: 'interval', anchorMs: 10, everyMs: 20, revision: 'v1', missedWindows: 'skip' }, 51), 50);
 const store = createFastlyKvStore({ storeId: 'test', token: async () => 'test', fetch: async () => new Response(null, { status: 404 }) });
 assert.deepEqual(await store.read('job'), { status: 'absent' });
@@ -42,6 +46,14 @@ import type { CoordinationStore, WriteResult } from '@pulse-compute/tick';
 import { createFastlyKvStore } from '@pulse-compute/tick/adapters/fastly-kv';
 import { createJobCoordinator } from '@pulse-compute/tick/core';
 import type { CoordinatorOptions, JobCoordinator, OwnershipLease, PendingTransition } from '@pulse-compute/tick/core';
+import { createRunner } from '@pulse-compute/tick/runner';
+import type { ExecutionRuntime, Runner } from '@pulse-compute/tick/runner';
+import type { TickDefinition } from '@pulse-compute/tick';
+declare const definition: TickDefinition<{ observations: unknown }>;
+declare const runtime: ExecutionRuntime;
+const runner: Runner = createRunner(definition, runtime);
+// @ts-expect-error The host must explicitly bind cancellation and timers.
+createRunner(definition);
 declare const options: CoordinatorOptions;
 const coordinator: JobCoordinator = createJobCoordinator(options);
 declare const pending: PendingTransition;
@@ -55,7 +67,7 @@ const result: Promise<WriteResult> = adapter.compareAndSwap({
   // @ts-expect-error Runtime records must satisfy the contract, not arbitrary JSON.
   value: { state: 'running' }
 });
-void [version, result, httpAdapter, coordinator, lease];
+void [version, result, httpAdapter, coordinator, lease, runner];
 `);
   run(process.execPath, [resolve('node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--module', 'NodeNext',
     '--target', 'ES2022', '--lib', 'ES2022,DOM', 'consumer.ts'], consumer);

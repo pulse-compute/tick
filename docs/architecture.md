@@ -7,7 +7,8 @@ types and package scaffolding only: no runner, provider adapter, or ownership pr
 TICK-02 adds a separate [HTTP KV adapter candidate](fastly-kv.md); its deployed gate
 remains pending, and it does not implement the ownership transitions described here.
 TICK-03 adds an experimental [per-job core](core.md) implementing those transitions against
-the declared store contract. There is still no executor or deployed ownership proof.
+the declared store contract. TICK-04 adds a separate [bounded runner](execution.md).
+There is still no deployed ownership proof or autonomous scheduling loop.
 
 ## Boundaries and bindings
 
@@ -99,8 +100,9 @@ Retries retain the run ID and fixed run deadline, increment attempt on acquisiti
 and receive a new attempt token. Delay retries by `retryDelayMs`; never exceed
 `maxAttemptsPerRun` or extend `runDeadlineMs` on renewal/takeover. Terminal failure
 uses `attempts-exhausted`, `deadline-exceeded`, or `permanent-failure` as appropriate.
-The future executor must define how application errors select retryable/permanent
-outcomes; TICK-00 does not pretend that behavior already exists.
+The runner maps ordinary thrown values to a bounded `job-error` retry code and supports
+explicit retry/permanent `JobFailure` decisions. Retries occur on later triggers; the
+runner does not sleep, automatically renew leases, or loop on application failures.
 
 ## Time, leases, and execution
 
@@ -124,15 +126,15 @@ external effect. Applications must use run identity and their own atomic/idempot
 effect protocol where required. A prior ownership check is not an atomic downstream
 commit guard. Tick makes no exactly-once execution/delivery promise.
 
-`maxJobsPerTick` bounds all visited jobs, including misses and contention. The future
-runner must also bound coordination/reconciliation attempts within the invocation.
+`maxJobsPerTick` bounds all visited jobs, including misses and contention. The runner
+allows at most one reconciliation for each claim/settlement and one execution per visit.
 Per-job CAS does not prevent a POP storm from generating storage traffic; admission
 before job scanning and its measured amplification belong to TICK-05.
 
 ## Validation and evidence
 
-The per-job core validates its inputs before I/O; a future runner must additionally validate
-job-list uniqueness and executor limits:
+The core and runner validate their inputs before I/O, including job-list uniqueness
+and executor limits:
 
 - Namespace, job IDs, and schedule revisions match `[A-Za-z0-9._-]{1,80}`; job IDs are unique.
 - Coordination prefixes match `[A-Za-z0-9/_-]{0,128}`; final keys satisfy provider constraints.

@@ -15,10 +15,13 @@ is disabled.
   cannot supply a lossless generation round trip; see [the adapter notes](docs/fastly-kv.md).
 - **TICK-03:** A per-job coordinator for anchored intervals, conditional claims, renewal,
   settlement, and ambiguous-write reconciliation, with deterministic adversarial tests.
+- **TICK-04:** A bounded sequential runner with explicit runtime bindings, application
+  failure policy, deadline/cancellation propagation, and recovery tests.
 
-The experimental core is exported from `@pulse-compute/tick/core`. There is no executor,
-scheduling loop, or `createScheduler()` export yet. Local tests establish state-machine
-behavior under the store contract; the deployed trigger and storage gates remain open.
+The experimental core is exported from `@pulse-compute/tick/core` and the runner from
+`@pulse-compute/tick/runner`. Applications invoke the runner through their own trigger.
+Local tests establish state-machine behavior under the store contract; the deployed
+trigger and storage gates remain open.
 
 ## Resource binding
 
@@ -38,9 +41,9 @@ const coordination: CoordinationBinding = {
 Coordination storage is separate from job resources: one application can coordinate through
 KV and store observations in S3. The core takes an explicit conditional-write adapter, a
 clock, and an ID source. The broader contract also declares optional telemetry and typed
-application resources for future execution. Credentials and host handles stay inside the
-adapter. See the [binding example](examples/bindings.ts) and [core example](examples/core.ts);
-both are typechecked.
+application resources. The runner also accepts explicit host cancellation/timer bindings.
+Credentials and host handles stay inside the adapter. See the typechecked [binding example](examples/bindings.ts),
+[core example](examples/core.ts), and [runner example](examples/runner.ts).
 
 ## Build and check
 
@@ -48,7 +51,7 @@ Node 22+ and npm are used for development:
 
 ```sh
 npm ci
-npm test                 # contracts, packed consumers, core, adapter and proof tests
+npm test                 # contracts, packed consumers, core, runner, adapter and proof tests
 npm run build            # ESM modules + declarations in dist/
 npm run proof:build      # existing Fastly receiver -> bin/main.wasm
 npm run proof:smoke      # Node-only receiver smoke; synthetic evidence
@@ -56,13 +59,14 @@ npm run proof:kv:build   # separate KV proof guest -> proof/kv/bin/main.wasm
 ```
 
 `fastly compute build` uses `proof:build` via `fastly.toml`. `npm pack` builds the package;
-only `dist/`, this README, and the architecture/core/adapter notes are included. The package has **zero
+only `dist/`, this README, and the architecture/core/execution/adapter notes are included. The package has **zero
 runtime dependencies**; the Fastly SDK is only a development dependency for the proof.
 
 ## Read next
 
 - [Architecture and guarantees](docs/architecture.md): identities, ownership, time, recovery.
 - [Interval and ownership core](docs/core.md): API, bounded operations, receipts, and recovery.
+- [Bounded execution](docs/execution.md): runtime bindings, retries, deadlines, and application effects.
 - [Fastly KV adapter](docs/fastly-kv.md): explicit HTTP transport and native SDK limitation.
 - [Coordination proof runbook](proof/kv/README.md): deployment, bounded cases, and evidence.
 - [Ticket roadmap](docs/roadmap.md): scope, model/effort assignments, and proof gates.
