@@ -11,8 +11,8 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 | TICK-02 | Minimal KV adapter plus deployed concurrency, stale-read, lost-response, and takeover proof. | Astra / Ultra | PR #3 merged; HTTP adapter/harness implemented, live gate pending. Native JS SDK binding unsupported. |
 | TICK-03 | Fixed-interval eligibility and ownership transitions; deterministic tests of run identity, recovery, and stale-owner rejection. | Astra / Ultra | PR #4 merged; experimental core, deployed guarantees remain blocked on 01/02 gates. |
 | TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | PR #5 merged; experimental runner, deployed guarantees pending. |
-| TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | Experimental receiver and local amplification/guest checks implemented at user request; live integration gate pending. |
-| TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | After 02–05; pending. |
+| TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | PR #6 merged; experimental receiver, live integration gate pending. |
+| TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | Implemented at user request; explicit mappings/shared checks and local conformance, live gates unchanged. |
 | TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | After 06; pending, unless needed earlier as coordination fallback. |
 | TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | After 06; needs 07 only if coordinating via S3. |
 | TICK-09 | Independent adversarial review, deployed fault scenarios, focused fixes, operations docs, package/release workflow. | Astra / Ultra review; Sol 6.1 / High fixes | After 07/08; pending. |
@@ -44,6 +44,10 @@ TICK-05 wires [namespace admission](trigger.md) and the runner into a compiled F
 guest, with explicit cooperative host cancellation and bounded duplicate-burst evidence.
 Its [new evidence status](../proof/trigger/evidence/STATUS.md) distinguishes the local
 reference comparison and Viceroy HTTP fixture from the still-pending deployed integration.
+TICK-06 adds [binding configuration](bindings.md) and [adapter conformance](conformance.md)
+to support provider verification without introducing another provider or a consumer.
+Its [validation record](../proof/bindings/STATUS.md) preserves earlier measurements;
+construction checks and finite reference-store cases do not clear deployed gates.
 
 TICK-01's checked-in [evidence status](../proof/evidence/STATUS.md) remains authoritative.
 The existing local results demonstrate receiver/harness behavior; native probe timing,

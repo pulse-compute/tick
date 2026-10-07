@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "npm run test:contracts && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof",
+    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof",
     "build": "tsc -p tsconfig.json",
     "proof:local": "node proof/scripts/local-server.mjs",
     "proof:burst": "node proof/scripts/burst.mjs",
@@ -22,6 +22,8 @@
     "test:core": "node --test test/core/*.test.mjs",
     "test:runner": "node --test test/runner/*.test.mjs",
     "test:trigger": "node --test test/trigger/*.test.mjs",
+    "test:bindings": "node --test test/bindings/*.test.mjs",
+    "test:conformance": "node --test test/conformance/*.test.mjs",
     "test:kv-proof": "node --test proof/kv/test/*.test.mjs",
     "proof:kv:build": "npm run build && js-compute-runtime proof/kv/src/fastly.js proof/kv/bin/main.wasm",
     "proof:kv": "node proof/kv/run.mjs",
@@ -56,6 +58,16 @@
       "import": "./dist/cancellation.js",
       "default": "./dist/cancellation.js"
     },
+    "./bindings": {
+      "types": "./dist/bindings.d.ts",
+      "import": "./dist/bindings.js",
+      "default": "./dist/bindings.js"
+    },
+    "./testing/conformance": {
+      "types": "./dist/testing/conformance.d.ts",
+      "import": "./dist/testing/conformance.js",
+      "default": "./dist/testing/conformance.js"
+    },
     "./adapters/fastly-trigger": {
       "types": "./dist/adapters/fastly-trigger.d.ts",
       "import": "./dist/adapters/fastly-trigger.js",
@@ -74,7 +86,9 @@
     "docs/fastly-kv.md",
     "docs/core.md",
     "docs/execution.md",
-    "docs/trigger.md"
+    "docs/trigger.md",
+    "docs/bindings.md",
+    "docs/conformance.md"
   ],
   "sideEffects": false
 }

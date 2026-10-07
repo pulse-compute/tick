@@ -20,6 +20,8 @@ is disabled.
 - **TICK-05:** An authenticated Fastly receiver with retained admission before job scanning,
   deterministic scan rotation, and duplicate-amplification evidence tools.
   **Live integration remains INCONCLUSIVE.**
+- **TICK-06:** Shared runtime binding validation, explicit logical provider mappings,
+  and a bounded adapter conformance suite with labeled fault bindings.
 
 The experimental core is exported from `@pulse-compute/tick/core` and the runner from
 `@pulse-compute/tick/runner`. The experimental receiver is exported from
@@ -48,7 +50,9 @@ clock, and an ID source. The broader contract also declares optional telemetry a
 application resources. The runner also accepts explicit host cancellation/timer bindings.
 Credentials and host handles stay inside the adapter. See the typechecked [binding example](examples/bindings.ts),
 [core example](examples/core.ts), [runner example](examples/runner.ts), and
-[trigger example](examples/trigger.ts). Admission has its own logical binding/prefix;
+[trigger example](examples/trigger.ts). The [provider mapping example](examples/provider-bindings.ts)
+uses `@pulse-compute/tick/bindings` to map a logical name to a provided or explicit HTTP
+adapter, preserve typed resources, and optionally check resource shape. Admission has its own logical binding/prefix;
 individual jobs still require claims. Cancellation bindings distinguish cooperative
 notification from optional native transport cancellation.
 
@@ -58,7 +62,7 @@ Node 22+ and npm are used for development:
 
 ```sh
 npm ci
-npm test                 # contracts, packed consumers, core, runner, trigger, adapter and proofs
+npm test                 # bindings, conformance, contracts, core, runner, trigger, adapters and proofs
 npm run build            # ESM modules + declarations in dist/
 npm run proof:build      # existing Fastly receiver -> bin/main.wasm
 npm run proof:smoke      # Node-only receiver smoke; synthetic evidence
@@ -68,7 +72,7 @@ npm run proof:trigger:burst # bounded reference comparison; synthetic evidence
 ```
 
 `fastly compute build` uses `proof:build` via `fastly.toml`. `npm pack` builds the package;
-only `dist/`, this README, and the architecture/core/execution/adapter/trigger notes are included. The package has **zero
+only `dist/`, this README, and the architecture/core/execution/adapter/trigger/binding/conformance notes are included. The package has **zero
 runtime dependencies**; the Fastly SDK is only a development dependency for the proof.
 
 ## Read next
@@ -77,6 +81,8 @@ runtime dependencies**; the Fastly SDK is only a development dependency for the 
 - [Interval and ownership core](docs/core.md): API, bounded operations, receipts, and recovery.
 - [Bounded execution](docs/execution.md): runtime bindings, retries, deadlines, and application effects.
 - [Fastly trigger admission](docs/trigger.md): bounded sweeps, rotation, authentication, and counters.
+- [Binding configuration](docs/bindings.md): logical mappings, resource guards, and runtime checks.
+- [Adapter conformance](docs/conformance.md): framework-neutral cases on isolated retained keys.
 - [Integration proof runbook](proof/trigger/README.md): compiled guest and burst evidence.
 - [Fastly KV adapter](docs/fastly-kv.md): explicit HTTP transport and native SDK limitation.
 - [Coordination proof runbook](proof/kv/README.md): deployment, bounded cases, and evidence.

@@ -1,6 +1,7 @@
 import { createJobCoordinator } from '../core.js';
 import type { CoordinationResult, CoordinatorLimits } from '../core.js';
 import { createRunner } from '../runner.js';
+import { captureClock, captureCoordination, captureIds, captureRuntime, captureTelemetry } from '../internal/bindings.js';
 import type { ExecutionRuntime, TickResult } from '../runner.js';
 import type { CoordinationBinding, CoordinationStore, IntervalSchedule, TickDefinition } from '../index.js';
 
@@ -40,10 +41,6 @@ function counted(store: CoordinationStore, counters: { reads: number; writes: nu
     compareAndSwap(operation) { counters.writes++; return write(operation); },
   };
 }
-function captureStore(store: CoordinationStore): CoordinationStore {
-  return Object.freeze({ capabilities: Object.freeze({ ...store.capabilities }),
-    read: store.read.bind(store), compareAndSwap: store.compareAndSwap.bind(store) });
-}
 
 /** Authenticated awaited trigger. Admission never substitutes for individual job ownership. */
 export function createFastlyTrigger<Resources>(options: FastlyTriggerOptions<Resources>): (request: Request) => Promise<Response> {
@@ -54,24 +51,20 @@ export function createFastlyTrigger<Resources>(options: FastlyTriggerOptions<Res
     || options.admission.coordination.prefix === options.definition.bindings.coordination.prefix) {
     throw new TypeError('Invalid Tick trigger configuration');
   }
-  const originalClock = options.definition.bindings.clock, originalIds = options.definition.bindings.ids;
-  const clock = Object.freeze({ nowMs: originalClock.nowMs.bind(originalClock), monotonicMs: originalClock.monotonicMs.bind(originalClock) });
-  const ids = Object.freeze({ newAttemptToken: originalIds.newAttemptToken.bind(originalIds), newMutationId: originalIds.newMutationId.bind(originalIds) });
+  const clock = captureClock(options.definition.bindings.clock), ids = captureIds(options.definition.bindings.ids);
+  const coordination = captureCoordination(options.definition.bindings.coordination);
+  const telemetry = captureTelemetry(options.definition.bindings.telemetry);
   const definition = Object.freeze({ ...options.definition,
     limits: Object.freeze({ ...options.definition.limits }),
     bindings: Object.freeze({ ...options.definition.bindings, clock, ids,
-      coordination: Object.freeze({ ...options.definition.bindings.coordination,
-        store: captureStore(options.definition.bindings.coordination.store) }) }),
+      coordination, ...(telemetry ? { telemetry } : {}) }),
     jobs: Object.freeze(options.definition.jobs.map((job) => Object.freeze({ ...job, schedule: Object.freeze({ ...job.schedule }) }))),
   });
   const admission = Object.freeze({ ...options.admission,
-    coordination: Object.freeze({ ...options.admission.coordination, store: captureStore(options.admission.coordination.store) }),
+    coordination: captureCoordination(options.admission.coordination),
     schedule: Object.freeze({ ...options.admission.schedule }), limits: Object.freeze({ ...options.admission.limits }),
   });
-  const runtime: ExecutionRuntime = {
-    createCancellationController: options.runtime.createCancellationController.bind(options.runtime),
-    setTimer: options.runtime.setTimer.bind(options.runtime),
-  };
+  const runtime = captureRuntime(options.runtime);
   const loadToken = options.loadToken.bind(options), requestId = options.requestId.bind(options);
   const metadata = options.metadata?.bind(options);
   const gateOptions = { namespace: definition.namespace, job: { id: 'trigger-admission', schedule: admission.schedule },
@@ -101,10 +94,6 @@ export function createFastlyTrigger<Resources>(options: FastlyTriggerOptions<Res
         || !integer(receivedAtMs + timeoutMs)) throw new TypeError('Invalid Tick clock');
       const deadlineMs = receivedAtMs + timeoutMs;
       controller = runtime.createCancellationController();
-      if (!controller?.signal || controller.signal.aborted || typeof controller.abort !== 'function'
-        || typeof controller.signal.addEventListener !== 'function' || typeof controller.signal.removeEventListener !== 'function') {
-        throw new TypeError('Invalid Tick cancellation binding');
-      }
       const scope = controller;
       onCancel = () => scope.abort();
       parent?.addEventListener('abort', onCancel, { once: true });

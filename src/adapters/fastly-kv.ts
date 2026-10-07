@@ -1,4 +1,5 @@
 import { isCoordinationRecord as isRecord } from '../internal/records.js';
+import { isNativeSignal } from '../internal/bindings.js';
 import type { ConditionalWrite, CoordinationStore, ReadResult, StoreRevision, WriteResult } from '../index.js';
 
 /** Explicit HTTP API binding. This does not use the native fastly:kv-store module. */
@@ -57,9 +58,15 @@ async function readBounded(response: Response): Promise<string> {
  * A lost write response is indeterminate even if the server may have committed it.
  */
 export function createFastlyKvStore(options: FastlyKvOptions): CoordinationStore {
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(options.storeId) || typeof options.token !== 'function'
-      || typeof options.fetch !== 'function') throw new TypeError('Invalid Fastly KV binding');
-  const baseUrl = `https://api.fastly.com/resources/stores/kv/${options.storeId}/keys/`;
+  let storeId: string, token: FastlyKvOptions['token'], transport: FastlyKvOptions['fetch'], signal: AbortSignal | undefined;
+  try {
+    storeId = options.storeId;
+    if (typeof storeId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(storeId) || typeof options.token !== 'function'
+      || typeof options.fetch !== 'function') throw new TypeError();
+    token = options.token.bind(options); transport = options.fetch.bind(options); signal = options.signal;
+    if (signal !== undefined && !isNativeSignal(signal)) throw new TypeError();
+  } catch { throw new TypeError('Invalid Fastly KV binding'); }
+  const baseUrl = `https://api.fastly.com/resources/stores/kv/${storeId}/keys/`;
   async function request(key: string, method: 'GET' | 'PUT', body?: string, expected?: ConditionalWrite['expected']): Promise<Response> {
     const headers = new Headers({ 'Cache-Control': 'no-store' });
     let suffix = '';
@@ -70,13 +77,13 @@ export function createFastlyKvStore(options: FastlyKvOptions): CoordinationStore
     }
     const url = baseUrl + encodeURIComponent(key) + suffix;
     if (body !== undefined) headers.set('Content-Type', 'application/json');
-    const credential = await options.token();
+    const credential = await token();
     if (typeof credential !== 'string' || !credential || /[^\x21-\x7e]/.test(credential)) throw new Error('Unavailable credential');
     headers.set('Fastly-Key', credential);
     const init: RequestInit = { method, headers, redirect: 'manual', cache: 'no-store' };
     if (body !== undefined) init.body = body;
-    if (options.signal !== undefined) init.signal = options.signal;
-    return options.fetch(url, init);
+    if (signal !== undefined) init.signal = signal;
+    return transport(url, init);
   }
   return {
     capabilities: { atomicCreate: true, atomicReplace: true, scope: 'global-per-key', coherentValueRevision: true, reads: 'possibly-stale' },
