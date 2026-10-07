@@ -1,116 +1,163 @@
 # Tick
 
-Experimental interval coordination from unreliable triggers, independent of the
-Pulse monorepo. Package naming (`tick` or `fastly-tick`) remains provisional and publishing
-is disabled.
+[![CI](https://github.com/pulse-compute/tick/actions/workflows/ci.yml/badge.svg)](https://github.com/pulse-compute/tick/actions/workflows/ci.yml)
 
-## What exists
+Run bounded interval work from duplicated, unreliable triggers. Tick coordinates through
+conditional writes in KV or S3, with application resources supplied through logical
+bindings. It is a standalone TypeScript/ESM package with **zero runtime dependencies**
+and no dependency on the Pulse monorepo.
 
-- **TICK-00:** TypeScript interfaces, explicit resource bindings, protocol rules, and an
-  importable ESM package exporting `TICK_CONTRACT_VERSION` and declarations.
-- **TICK-01:** A Fastly trigger proof with an authenticated receiver and evidence tools.
-  The implementation is merged; **live trigger viability remains INCONCLUSIVE**.
-- **TICK-02:** An explicit Fastly KV HTTP adapter and coordination proof harness.
-  **Live coordination viability remains INCONCLUSIVE.** The pinned native JS SDK
-  cannot supply a lossless generation round trip; see [the adapter notes](docs/fastly-kv.md).
-- **TICK-03:** A per-job coordinator for anchored intervals, conditional claims, renewal,
-  settlement, and ambiguous-write reconciliation, with deterministic adversarial tests.
-- **TICK-04:** A bounded sequential runner with explicit runtime bindings, application
-  failure policy, deadline/cancellation propagation, and recovery tests.
-- **TICK-05:** An authenticated Fastly receiver with retained admission before job scanning,
-  deterministic scan rotation, and duplicate-amplification evidence tools.
-  **Live integration remains INCONCLUSIVE.**
-- **TICK-06:** Shared runtime binding validation, explicit logical provider mappings,
-  and a bounded adapter conformance suite with labeled fault bindings.
-- **TICK-07:** An explicit S3 conditional-write adapter, `s3-http` mapping, and a signed
-  Fastly conformance receiver covering lost replies and stale-owner rejection.
-  **Live S3 coordination remains INCONCLUSIVE.**
-- **TICK-08:** A standalone HTTP monitor with KV admission/coordination, immutable S3
-  observations, explicit Node/Fastly hosts and an optional Pulse probe boundary.
-  [The runnable example](apps/http-monitor/README.md) includes recovery checks and setup.
-  **Deployed monitor behavior remains INCONCLUSIVE.**
-- **TICK-09:** Adversarial regressions and focused clock/wire-data fixes, bounded monitor
-  fault scenarios, [operations guidance](docs/operations.md) and a private package artifact
-  workflow. [Independent reviewer sign-off and deployed gates remain pending](proof/hardening/REVIEW.md).
+Useful for uptime checks, periodic reconciliation and other small jobs invoked by an
+external request or health probe. Tick runs work when a trigger arrives; it does not
+create a scheduler or guarantee that a trigger will arrive.
 
-The experimental core is exported from `@pulse-compute/tick/core` and the runner from
-`@pulse-compute/tick/runner`. The experimental receiver is exported from
-`@pulse-compute/tick/adapters/fastly-trigger`; applications can also invoke the runner directly.
-Local tests establish state-machine behavior under the store contract; the deployed
-trigger and storage gates remain open.
+**Experimental:** local contracts, race/fault tests and Wasm fixtures are covered.
+Deployed Fastly trigger, KV, S3 and monitor proof gates remain inconclusive. Leases do
+not provide exactly-once execution or undo external effects. See [guarantees](docs/architecture.md)
+and [operations](docs/operations.md) before choosing a production provider.
 
-## Resource binding
+## Install
 
-The application supplies dependencies using logical names:
+Node 22+ is required for the Node example. ESM and TypeScript declarations are included.
+After the first npm publication, install the beta with:
 
-```ts
-import type { CoordinationBinding } from '@pulse-compute/tick';
-
-// `adapter` is supplied by the application. Its deployed semantics still need proof.
-const coordination: CoordinationBinding = {
-  name: 'scheduler-state',
-  prefix: 'uptime/',
-  store: adapter,
-};
+```sh
+npm install @pulse-compute/tick@beta
 ```
 
-Coordination storage is separate from job resources: one application can coordinate through
-KV and store observations in S3. The core takes an explicit conditional-write adapter, a
-clock, and an ID source. The broader contract also declares optional telemetry and typed
-application resources. The runner also accepts explicit host cancellation/timer bindings.
-Credentials and host handles stay inside the adapter. See the typechecked [binding example](examples/bindings.ts),
-[core example](examples/core.ts), [runner example](examples/runner.ts), and
-[trigger example](examples/trigger.ts). The [provider mapping example](examples/provider-bindings.ts)
-uses `@pulse-compute/tick/bindings` to map a logical name to a provided or explicit HTTP
-adapter, preserve typed resources, and optionally check resource shape. Admission has its own logical binding/prefix;
-individual jobs still require claims. Cancellation bindings distinguish cooperative
-notification from optional native transport cancellation.
-
-## Build and check
-
-Node 22+ and npm are used for development:
+Until then, use a private review tarball from the manual **Private Tick package artifact**
+workflow, or build one from a clean committed checkout:
 
 ```sh
 npm ci
-npm test                 # bindings, conformance, contracts, core, runner, trigger, adapters and proofs
-npm run build            # ESM modules + declarations in dist/
-npm run proof:build      # existing Fastly receiver -> bin/main.wasm
-npm run proof:smoke      # Node-only receiver smoke; synthetic evidence
-npm run proof:kv:build   # separate KV proof guest -> proof/kv/bin/main.wasm
-npm run proof:trigger:build # integrated receiver -> proof/trigger/bin/main.wasm
-npm run proof:trigger:burst # bounded reference comparison; synthetic evidence
-npm run proof:s3:build   # signed S3 conformance guest -> proof/s3/bin/main.wasm
-npm run test:monitor     # practical monitor + isolated packed-package consumer
-npm run monitor:guest:build # application guest -> apps/http-monitor/bin/main.wasm
-npm run package:artifact -- --output pkg/NEW_COHORT # clean committed checkout; private tarball/manifest
+npm run package:artifact -- --output pkg/preview
+npm install /absolute/path/to/pulse-compute-tick-0.0.0.tgz
 ```
 
-`fastly compute build` uses `proof:build` via `fastly.toml`. `npm pack` builds the package;
-only `dist/`, this README, and the architecture/core/execution/adapter/trigger/binding/conformance/operations notes are included. The package has **zero
-runtime dependencies**; the Fastly SDK is only a development dependency for the proof.
+The development manifest stays `private: true`. Manual npm publishing prepares a separate
+versioned tarball; see [release setup](docs/release.md).
 
-## Read next
+## One job, one invocation
 
-- [Architecture and guarantees](docs/architecture.md): identities, ownership, time, recovery.
-- [Interval and ownership core](docs/core.md): API, bounded operations, receipts, and recovery.
-- [Bounded execution](docs/execution.md): runtime bindings, retries, deadlines, and application effects.
-- [Fastly trigger admission](docs/trigger.md): bounded sweeps, rotation, authentication, and counters.
-- [Binding configuration](docs/bindings.md): logical mappings, resource guards, and runtime checks.
-- [Adapter conformance](docs/conformance.md): framework-neutral cases on isolated retained keys.
-- [Integration proof runbook](proof/trigger/README.md): compiled guest and burst evidence.
-- [Fastly KV adapter](docs/fastly-kv.md): explicit HTTP transport and native SDK limitation.
-- [S3 adapter](docs/s3.md): conditional PUT, opaque ETags and explicit signed transport.
-- [S3 proof runbook](proof/s3/README.md): conformance, stale owners, SigV4 and evidence.
-- [Practical HTTP monitor](apps/http-monitor/README.md): KV/S3 mappings, hosts, recovery and Pulse boundary.
-- [Operations](docs/operations.md): outcomes, bounded live fault matrix, retention and recovery.
-- [Private artifact/release gate](docs/release.md): clean-source tarball hashes and explicit later release decisions.
-- [Adversarial audit handoff](proof/hardening/REVIEW.md): reproduced findings and separate reviewer requirements.
-- [Coordination proof runbook](proof/kv/README.md): deployment, bounded cases, and evidence.
-- [Ticket roadmap](docs/roadmap.md): scope, model/effort assignments, and proof gates.
-- [Contributor rules](AGENTS.md): preserve the boundaries while implementing later tickets.
-- [Fastly proof runbook](proof/README.md): deploy, capture, analyze, and tear down.
-- [TICK-01 evidence status](proof/evidence/STATUS.md): local validation and missing live checks.
+This Node example checks a page once in the latest eligible minute. It maps the logical
+`state` binding to an existing Fastly KV store, injects the host clock/IDs/timers, and
+logs the HTTP result. Set `FASTLY_KV_STORE_ID` and `FASTLY_API_TOKEN` in the environment,
+then save this as `quickstart.mjs` and run `node quickstart.mjs` after installing Tick.
+Use a fresh retained prefix; the token needs access to the selected KV store.
 
-The contract intentionally promises no exactly-once execution, perpetual clock, automatic
-side-effect rollback, or cross-key transaction. Conditional writes reject stale revisions;
-applications must separately handle duplicate effects and external commit authority.
+```js
+import { randomUUID } from 'node:crypto';
+import { createBindings } from '@pulse-compute/tick/bindings';
+import { createRunner } from '@pulse-compute/tick/runner';
+
+// Keep credentials in host bindings; the definition contains logical resource names.
+const storeId = process.env.FASTLY_KV_STORE_ID;
+const token = process.env.FASTLY_API_TOKEN;
+if (!storeId || !token) throw new Error('Set FASTLY_KV_STORE_ID and FASTLY_API_TOKEN');
+
+const runner = createRunner({
+  contractVersion: 1,
+  namespace: 'quickstart',
+  bindings: createBindings({
+    coordination: { name: 'state', prefix: 'quickstart/jobs/' },
+    stores: { state: { kind: 'fastly-kv-http', options: {
+      storeId, token: async () => token,
+      fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(2_000) }),
+    } } },
+    clock: { nowMs: Date.now, monotonicMs: () => performance.now() },
+    ids: { newAttemptToken: randomUUID, newMutationId: randomUUID },
+    resources: { target: 'https://example.com/' },
+  }),
+  limits: {
+    maxJobsPerTick: 1, maxAttemptsPerRun: 3, leaseMs: 6_000,
+    runTimeoutMs: 30_000, retryDelayMs: 1_000,
+    maxClockSkewMs: 1_000, deadlineSafetyMs: 500,
+  },
+  jobs: [{
+    id: 'homepage',
+    schedule: { kind: 'interval', anchorMs: 0, everyMs: 60_000,
+      revision: 'v1', missedWindows: 'skip' },
+    async execute(context, resources) {
+      const response = await fetch(resources.target, {
+        signal: AbortSignal.any([context.transportSignal, AbortSignal.timeout(2_000)]),
+        redirect: 'manual', cache: 'no-store',
+      });
+      await response.body?.cancel();
+      if (!context.signal.aborted) console.log({ run: context.run.id, httpStatus: response.status });
+    },
+  }],
+}, {
+  createCancellationController() {
+    const controller = new AbortController();
+    return { signal: controller.signal, nativeSignal: controller.signal,
+      abort: () => controller.abort() };
+  },
+  setTimer(callback, delayMs) {
+    const timer = setTimeout(callback, delayMs);
+    return () => clearTimeout(timer);
+  },
+});
+
+// One bounded invocation. An external request/probe calls this again when needed.
+const result = await runner.tick({ requestId: randomUUID(),
+  deadlineMs: Date.now() + 8_000, signal: AbortSignal.timeout(8_000) });
+console.log(result);
+```
+
+The same logical interval is skipped after settlement; retries can occur on a later
+trigger. KV failures decline execution. A transport failure retries; an HTTP 503 is
+logged as a completed observation. Keep externally visible effects idempotent using
+`context.run.id`; the example does not persist observation history.
+
+Replace the `state` mapping with `{ kind: 'provided', store: yourConditionalStore }` or
+an explicit `s3-http` mapping, and put application dependencies in `resources`.
+Coordination state and observations can use different stores. See [binding configuration](docs/bindings.md).
+
+For a practical authenticated endpoint with KV admission, S3 snapshots and Node/Fastly
+hosts, use the [HTTP monitor application](https://github.com/pulse-compute/tick/tree/main/apps/http-monitor).
+On Fastly, bind the host transport, backend timeouts and cooperative cancellation
+explicitly; the Node host code above uses native Node APIs. Native Fastly JS KV is not a
+supported lossless-revision adapter; the current KV mapping uses the explicit HTTP API.
+
+## Public exports
+
+| Import | Purpose |
+| --- | --- |
+| `@pulse-compute/tick` | Contract version and TypeScript interfaces |
+| `@pulse-compute/tick/bindings` | Logical coordination/resource mappings |
+| `@pulse-compute/tick/runner` | Bounded sequential execution |
+| `@pulse-compute/tick/core` | Claims, settlement and reconciliation |
+| `@pulse-compute/tick/cancellation` | Cooperative cancellation controller |
+| `@pulse-compute/tick/adapters/fastly-trigger` | Authentication and admission before scanning jobs |
+| `@pulse-compute/tick/adapters/fastly-kv` | Conditional KV HTTP adapter candidate |
+| `@pulse-compute/tick/adapters/s3` | Conditional S3 HTTP adapter candidate; host supplies signing |
+| `@pulse-compute/tick/testing/conformance` | Bounded isolated adapter checks |
+
+## Develop and validate
+
+```sh
+npm ci
+npm run check                   # full local tests, packed imports/types and Node smoke
+npm run build                   # ESM and declarations in dist/
+npm run monitor:node            # practical app; see its setup guide first
+npm run proof:build             # Fastly receiver Wasm
+npm run proof:kv:build
+npm run proof:trigger:build
+npm run proof:s3:build
+npm run monitor:guest:build
+```
+
+PR checks run on Node 22 and 24 without compiling Wasm. Main and manual artifact/publish
+workflows also compile all five guests. Tests use isolated local fixtures and do not
+provision or deploy provider resources. The packed artifact contains modules, declarations
+and usage/contract notes; application, proof, credentials and development tools stay out.
+
+## Documentation
+
+- [Architecture](docs/architecture.md), [core](docs/core.md) and [execution](docs/execution.md): ownership, budgets, recovery and effects.
+- [Bindings](docs/bindings.md), [Fastly KV](docs/fastly-kv.md) and [S3](docs/s3.md): dependency mapping and explicit transports.
+- [Trigger admission](docs/trigger.md): authentication, scan bounds and duplicate amplification.
+- [Conformance](docs/conformance.md) and [operations](docs/operations.md): isolated checks, failure outcomes and retained state.
+- [Manual npm publishing](docs/release.md): setup, dry runs and versioned tarballs.
+- [Roadmap and proof status](https://github.com/pulse-compute/tick/blob/main/docs/roadmap.md): implemented work and remaining live gates.
+- [Examples](https://github.com/pulse-compute/tick/tree/main/examples) and [contributor rules](https://github.com/pulse-compute/tick/blob/main/AGENTS.md).

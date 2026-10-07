@@ -2,9 +2,12 @@ name: Tick contracts and proof
 on:
   push:
     branches: [main]
-  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: tick-proof-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   contracts-and-proof:
     runs-on: ubuntu-latest

@@ -1,7 +1,8 @@
 # Tick implementation roadmap
 
-The package name is provisional (`tick` or `fastly-tick`). The repository is independent
-of Pulse and publishing remains disabled. Keep scope to fixed intervals, duplicate-trigger
+The development package is `@pulse-compute/tick@0.0.0` with source privacy retained.
+The repository is independent of Pulse; manual versioned npm publishing is prepared
+separately from deployed provider proof. Keep scope to fixed intervals, duplicate-trigger
 admission, recoverable attempts, bounded execution, and explicit dependency bindings.
 
 | Ticket | Deliverable / acceptance | Model and effort | Dependency / status |
@@ -15,7 +16,7 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 | TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | PR #7 merged; explicit mappings/shared checks and local conformance, live gates unchanged. |
 | TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | PR #8 merged; S3 HTTP candidate, signed guest and nine local cases. Deployed S3 gate pending. |
 | TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | PR #9 merged; standalone consumer, Node/Fastly hosts, optional Pulse shim and local recovery checks. Deployed gates remain pending. |
-| TICK-09 | Independent adversarial review, deployed fault scenarios, focused fixes, operations docs, package/release workflow. | Astra / Ultra review; Sol 6.1 / High fixes | Local implementation audit/fixes, bounded fault matrix and private artifact workflow implemented. Separate independent reviewer sign-off and actual deployed trials remain pending. |
+| TICK-09 | Independent adversarial review, deployed fault scenarios, focused fixes, operations docs, package/release workflow. | Astra / Ultra review; Sol 6.1 / High fixes | PR #10 merged; local implementation audit/fixes, bounded fault matrix and private artifact workflow implemented. Separate independent reviewer sign-off and actual deployed trials remain pending. |
 
 ## Evidence gates
 
@@ -80,3 +81,9 @@ Defer cron/calendar expressions, queues, workflow graphs, dashboards, durable au
 history, automatic schedule migration, record garbage collection, and full Uptime Kuma
 compatibility. Do not add release-scale test gates to each small development slice.
 Resolve the public package name before publishing; no release/publish is part of TICK-00.
+
+## Final package polish
+
+The user-requested follow-up adds a manual main-only npm workflow, versioned tarball
+preparation, fast Node 22/24 PR checks and a runnable README example. It leaves source
+privacy and all independent/live proof dispositions intact. See [release setup](release.md).
