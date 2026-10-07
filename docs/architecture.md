@@ -4,6 +4,8 @@ Tick turns duplicated, unreliable triggers into bounded attempts at interval wor
 This document defines the draft contract exported by `src/index.ts`. TICK-00 supplies
 types and package scaffolding only: no runner, provider adapter, or ownership proof.
 `examples/bindings.ts` demonstrates typed dependency wiring, not runnable scheduling.
+TICK-02 adds a separate [HTTP KV adapter candidate](fastly-kv.md); its deployed gate
+remains pending, and it does not implement the ownership transitions described here.
 
 ## Boundaries and bindings
 

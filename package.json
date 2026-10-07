@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "npm run test:contracts && npm run test:proof",
+    "test": "npm run test:contracts && npm run test:adapters && npm run test:proof && npm run test:kv-proof",
     "build": "tsc -p tsconfig.json",
     "proof:local": "node proof/scripts/local-server.mjs",
     "proof:burst": "node proof/scripts/burst.mjs",
@@ -17,7 +17,12 @@
     "proof:build": "js-compute-runtime proof/src/fastly.js bin/main.wasm",
     "test:contracts": "npm run build && tsc -p test/types/tsconfig.json && node scripts/check-package.mjs",
     "test:proof": "node --test proof/test/*.test.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test:adapters": "node --test test/adapters/*.test.mjs",
+    "test:kv-proof": "node --test proof/kv/test/*.test.mjs",
+    "proof:kv:build": "npm run build && js-compute-runtime proof/kv/src/fastly.js proof/kv/bin/main.wasm",
+    "proof:kv": "node proof/kv/run.mjs",
+    "proof:kv:smoke": "node proof/kv/smoke.mjs"
   },
   "devDependencies": {
     "@fastly/js-compute": "3.45.0",
@@ -29,12 +34,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./adapters/fastly-kv": {
+      "types": "./dist/adapters/fastly-kv.d.ts",
+      "import": "./dist/adapters/fastly-kv.js",
+      "default": "./dist/adapters/fastly-kv.js"
     }
   },
   "files": [
     "dist",
     "README.md",
-    "docs/architecture.md"
+    "docs/architecture.md",
+    "docs/fastly-kv.md"
   ],
   "sideEffects": false
 }

@@ -19,3 +19,4 @@ jobs:
       - run: npm test
       - run: npm run proof:smoke
       - run: npm run proof:build
+      - run: npm run proof:kv:build

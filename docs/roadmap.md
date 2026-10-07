@@ -6,9 +6,9 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 
 | Ticket | Deliverable / acceptance | Model and effort | Dependency / status |
 | --- | --- | --- | --- |
-| TICK-00 | TypeScript package contract, binding example, architecture, minimal CI, and documented guarantees/time assumptions. | Astra / Ultra | This change; contracts only. |
+| TICK-00 | TypeScript package contract, binding example, architecture, minimal CI, and documented guarantees/time assumptions. | Astra / Ultra | PR #2 merged; contracts only. |
 | TICK-01 | Authenticated Fastly probe receiver and evidence harness; measure idle continuity, deployment gaps, routing, timeout, and POP arrivals. | Sol 6.1 / High | PR #1 merged; live viability pending. |
-| TICK-02 | Minimal KV adapter plus deployed concurrency, stale-read, lost-response, and takeover proof. | Astra / Ultra | After 00; pending. |
+| TICK-02 | Minimal KV adapter plus deployed concurrency, stale-read, lost-response, and takeover proof. | Astra / Ultra | HTTP adapter/harness implemented; live gate pending. Native JS SDK binding unsupported. |
 | TICK-03 | Fixed-interval eligibility and ownership transitions; deterministic tests of run identity, recovery, and stale-owner rejection. | Astra / Ultra | After 01/02 live gates; pending. |
 | TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | After 03; pending. |
 | TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | After 04; pending. |
@@ -36,6 +36,8 @@ of TICK-01's trigger proof. Neither passing types nor local receiver tests clear
 TICK-01's checked-in [evidence status](../proof/evidence/STATUS.md) remains authoritative.
 The existing local results demonstrate receiver/harness behavior; native probe timing,
 idle continuity, cross-POP amplification, and deployed request lifetime remain unverified.
+TICK-02's [evidence status](../proof/kv/evidence/STATUS.md) records the local HTTP-adapter
+and guest checks; the deployed coordination gate remains inconclusive.
 
 ## Scope control
 
