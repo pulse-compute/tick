@@ -3,7 +3,7 @@ import { SecretStore } from 'fastly:secret-store';
 import { CacheOverride } from 'fastly:cache-override';
 import { env } from 'fastly:env';
 import { Logger } from 'fastly:logger';
-import { createFastlyKvStore } from '../../../dist/adapters/fastly-kv.js';
+import { createBindings, createCoordinationBinding } from '../../../dist/bindings.js';
 import { createFastlyTrigger } from '../../../dist/adapters/fastly-trigger.js';
 import { createCooperativeController } from '../../../dist/cancellation.js';
 import { settings } from './settings.js';
@@ -17,8 +17,9 @@ const transport = (url, init) => fetch(url, { ...init, backend: 'fastly_api', ca
 function handler(scenario) {
   let lost = false;
   const base = `tick05/${scenario}/`;
-  const jobsStore = createFastlyKvStore({ storeId: settings.storeId, token: () => secret('fastly-api-token'), fetch: transport });
-  const gateStore = createFastlyKvStore({ storeId: settings.storeId, token: () => secret('fastly-api-token'), fetch: async (url, init) => {
+  const stores = {
+    jobs: { kind: 'fastly-kv-http', options: { storeId: settings.storeId, token: () => secret('fastly-api-token'), fetch: transport } },
+    admission: { kind: 'fastly-kv-http', options: { storeId: settings.storeId, token: () => secret('fastly-api-token'), fetch: async (url, init) => {
     const response = await transport(url, init);
     if (scenario === 'lost' && !lost && init.method === 'PUT' && [200, 201, 204].includes(response.status)) {
       lost = true;
@@ -26,19 +27,21 @@ function handler(scenario) {
       throw new Error('Injected successful admission response loss');
     }
     return response;
-  } });
+    } } },
+  };
+  const bindings = createBindings({ coordination: { name: 'jobs', prefix: `${base}jobs/` }, stores,
+    clock: { nowMs: () => Date.now(), monotonicMs: () => performance.now() },
+    ids: { newAttemptToken: id, newMutationId: id }, resources: {} });
   const limits = { maxAttemptsPerRun: 3, leaseMs: 3_000, runTimeoutMs: 10_000,
     retryDelayMs: 100, maxClockSkewMs: 20, deadlineSafetyMs: 20 };
   return createFastlyTrigger({ requestTimeoutMs: settings.requestTimeoutMs, path: `/__tick/run/${scenario}`,
     runtime, loadToken: () => secret('probe-token'), requestId: id,
     metadata: () => ({ receiverPop: env('FASTLY_POP') || 'unknown', serviceId: env('FASTLY_SERVICE_ID') || 'unknown',
       serviceVersion: env('FASTLY_SERVICE_VERSION') || 'unknown' }),
-    admission: { coordination: { name: 'admission', prefix: `${base}admission/`, store: gateStore }, limits,
+    admission: { coordination: createCoordinationBinding({ name: 'admission', prefix: `${base}admission/` }, stores), limits,
       schedule: { kind: 'interval', anchorMs: 0, everyMs: settings.gateEveryMs, revision: 'v1', missedWindows: 'skip' } },
     definition: { contractVersion: 1, namespace: `tick05-${scenario}`,
-      bindings: { coordination: { name: 'jobs', prefix: `${base}jobs/`, store: jobsStore },
-        clock: { nowMs: () => Date.now(), monotonicMs: () => performance.now() },
-        ids: { newAttemptToken: id, newMutationId: id }, resources: {} },
+      bindings,
       limits: { ...limits, maxJobsPerTick: settings.maxJobsPerTick, leaseMs: scenario === 'timeout' ? 150 : 1_500 },
       jobs: Array.from({ length: settings.jobCount }, (_, index) => ({ id: `job-${index}`,
         schedule: { kind: 'interval', anchorMs: 0, everyMs: settings.jobEveryMs, revision: 'v1', missedWindows: 'skip' },

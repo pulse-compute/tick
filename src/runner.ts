@@ -1,4 +1,5 @@
 import { createJobCoordinator } from './core.js';
+import { captureClock, captureCoordination, captureIds, captureRuntime, captureTelemetry } from './internal/bindings.js';
 import type { CoordinationResult, JobCoordinator, OwnershipLease } from './core.js';
 import type { CancellationController, Clock, CoordinationRecord, ExecutionContext, JobDefinition, LeasedRecord, RunIdentity, TickDefinition, TickEvent, TickInvocation } from './index.js';
 
@@ -55,11 +56,6 @@ function classifyFailure(error: unknown): { disposition: 'retry' | 'failed'; fai
   return { disposition: 'retry', failureCode: 'job-error' };
 }
 
-function validateController(controller: CancellationController): void {
-  if (!controller?.signal || typeof controller.abort !== 'function'
-    || typeof controller.signal.addEventListener !== 'function' || typeof controller.signal.removeEventListener !== 'function'
-    || typeof controller.signal.aborted !== 'boolean' || controller.signal.aborted) throw new TypeError('Invalid Tick abort binding');
-}
 function makeBudget(clock: Clock, deadline: number, margin: number): InvocationBudget {
   let invalid = false, startWall = 0, startMono = 0, lastWall = 0, lastMono = 0;
   try { startWall = lastWall = clock.nowMs(); startMono = lastMono = clock.monotonicMs(); } catch { invalid = true; }
@@ -86,15 +82,12 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
   }
   const limits = Object.freeze({ ...definition.limits });
   const namespace = definition.namespace;
-  const coordination = Object.freeze({ ...definition.bindings.coordination });
-  const sourceClock = definition.bindings.clock;
-  const clock: Clock = { nowMs: sourceClock.nowMs.bind(sourceClock), monotonicMs: sourceClock.monotonicMs.bind(sourceClock) };
-  const sourceIds = definition.bindings.ids;
-  const ids = { newAttemptToken: sourceIds.newAttemptToken.bind(sourceIds), newMutationId: sourceIds.newMutationId.bind(sourceIds) };
+  const coordination = captureCoordination(definition.bindings.coordination);
+  const clock = captureClock(definition.bindings.clock), ids = captureIds(definition.bindings.ids);
   const resources = definition.bindings.resources;
-  const emit = definition.bindings.telemetry?.emit.bind(definition.bindings.telemetry);
-  const createController = runtime.createCancellationController.bind(runtime);
-  const setTimer = runtime.setTimer.bind(runtime);
+  const emit = captureTelemetry(definition.bindings.telemetry)?.emit;
+  const capturedRuntime = captureRuntime(runtime);
+  const createController = capturedRuntime.createCancellationController, setTimer = capturedRuntime.setTimer;
   const margin = limits.maxClockSkewMs + limits.deadlineSafetyMs;
   const names = new Set<string>();
   const jobs = definition.jobs.map((job) => {
@@ -136,7 +129,6 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
       || typeof parent.removeEventListener !== 'function' || !integer(startAt)
       || (jobs.length ? startAt >= jobs.length : startAt !== 0)) throw new TypeError('Invalid Tick invocation');
     const controller = createController();
-    validateController(controller);
     const signal = controller.signal;
     let stopped: 'cancelled' | 'expired' | undefined;
     const stop = (reason: 'cancelled' | 'expired') => {
@@ -181,7 +173,6 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
         let cancelled = false;
         let dispatched = false;
         const jobController = createController();
-        validateController(jobController);
         if (jobController.signal === signal) throw new TypeError('Tick abort binding must produce fresh signals');
         let cancelJobTimer: (() => void) | undefined;
         let onAbort: () => void = () => {};

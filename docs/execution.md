@@ -57,9 +57,12 @@ TICK-05 renames the private draft runtime factory from `createAbortController` t
 `createCancellationController`; callers must update their explicit host binding.
 
 Construction validates contract version, unique job IDs, callable execution/runtime
-bindings, schedules, coordination capabilities, and positive visit/time limits. Jobs,
-schedules, limits, and callable bindings are captured before I/O. Resources retain their
-application-owned identity; freezing the definition does not freeze application resources.
+bindings through [shared TICK-06 checks](bindings.md), schedules, and visit/time limits.
+Each captured runtime rejects reused, inactive, or malformed controllers; optional native
+signals must be tied to that same controller. No controller or timer is created merely
+by constructing a runner. Jobs, schedules, limits, and callable bindings are captured
+before I/O. Resources retain their application-owned identity; freezing the definition
+does not freeze application resources.
 
 ## Bounded visits and transitions
 

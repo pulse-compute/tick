@@ -67,8 +67,14 @@ The adapter validates contract-v1 record shape, canonical run identity, nonnegat
 integer timestamps, positive attempts, and bounded IDs/failure codes. Mutation and attempt
 tokens use `[A-Za-z0-9._:-]{1,128}`; failure codes use that alphabet with an 80-character
 limit. Reads are capped at 16 KiB. The TICK-03 core validates its own schedule and limits;
-full provider setup and binding ergonomics remain TICK-06. Checking the record shape does
+TICK-06 adds [logical mappings and captured provider options](bindings.md). Checking the record shape does
 not authorize any transition or execution.
+
+The adapter captures its store ID, token/transport callables, and optional native signal
+at construction. Changing those option fields while credentials resolve cannot redirect
+an operation or substitute its transport. Cooperative-only signals reject as native
+bindings. The [reusable conformance suite](conformance.md) exercises this candidate against
+a local HTTP fixture; deployed semantics remain unproven.
 
 ## What the proof must establish
 

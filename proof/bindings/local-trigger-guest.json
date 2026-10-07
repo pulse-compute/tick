@@ -1,0 +1,26 @@
+{
+  "schema": "tick.trigger.guest-smoke.v1",
+  "mode": "synthetic",
+  "runtime": "viceroy",
+  "passed": true,
+  "burst": {
+    "requests": 16,
+    "admittedSweeps": 1,
+    "visited": 4,
+    "executions": 4,
+    "apiCalls": 42,
+    "admissionCalls": 26,
+    "jobCalls": 16
+  },
+  "cases": [
+    "auth-routing",
+    "duplicate-burst",
+    "lost-admission-reply",
+    "crash-recovery",
+    "cooperative-timeout"
+  ],
+  "totalApiCalls": 89,
+  "distributed": false,
+  "verdict": "inconclusive",
+  "note": "Actual Wasm guest, HTTP KV adapter, cooperative timers and Secret Store against a local atomic HTTP fixture; no deployed/native KV evidence."
+}

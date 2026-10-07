@@ -3,6 +3,7 @@ import type {
   IntervalSchedule, LeasedRecord, MutationId, RunId, StoreRevision, TickInvocation, WritePrecondition,
 } from './index.js';
 import { isCoordinationRecord } from './internal/records.js';
+import { captureClock, captureCoordination, captureIds } from './internal/bindings.js';
 
 export type CoordinatorLimits = Pick<ExecutionLimits,
   'maxAttemptsPerRun' | 'leaseMs' | 'runTimeoutMs' | 'retryDelayMs' | 'maxClockSkewMs' | 'deadlineSafetyMs'>;
@@ -98,24 +99,19 @@ export function createJobCoordinator(options: CoordinatorOptions): JobCoordinato
   const jobId = options.job.id;
   const schedule = Object.freeze({ ...options.job.schedule });
   const limits = Object.freeze({ ...options.limits });
-  const prefix = options.coordination.prefix;
-  const caps = options.coordination.store.capabilities;
-  if (!matches(namespace, identifier) || !matches(jobId, identifier)
-    || !matches(prefix, /^[A-Za-z0-9/_-]{0,128}$/) || !options.coordination.name
-    || caps?.atomicCreate !== true || caps.atomicReplace !== true || caps.scope !== 'global-per-key'
-    || caps.coherentValueRevision !== true || caps.reads !== 'possibly-stale') throw new TypeError('Unsupported Tick coordination binding');
+  const coordination = captureCoordination(options.coordination);
+  const clock = captureClock(options.clock), ids = captureIds(options.ids);
+  const prefix = coordination.prefix;
+  if (!matches(namespace, identifier) || !matches(jobId, identifier)) throw new TypeError('Invalid Tick coordinator identity');
   validateSchedule(schedule);
   if (![limits.maxAttemptsPerRun, limits.leaseMs, limits.runTimeoutMs, limits.deadlineSafetyMs].every(positive)
     || !nonnegative(limits.retryDelayMs) || !nonnegative(limits.maxClockSkewMs)) throw new TypeError('Invalid Tick limits');
   const margin = add(limits.maxClockSkewMs, limits.deadlineSafetyMs);
   if (limits.leaseMs <= margin || limits.runTimeoutMs <= margin) throw new TypeError('Tick limits leave no usable time');
   const key = prefix + JSON.stringify(['tick.job.v1', namespace, jobId]);
-  const read = options.coordination.store.read.bind(options.coordination.store);
-  const cas = options.coordination.store.compareAndSwap.bind(options.coordination.store);
-  const wall = options.clock.nowMs.bind(options.clock);
-  const monotonic = options.clock.monotonicMs.bind(options.clock);
-  const mutationId = options.ids.newMutationId.bind(options.ids);
-  const attemptToken = options.ids.newAttemptToken.bind(options.ids);
+  const read = coordination.store.read, cas = coordination.store.compareAndSwap;
+  const wall = clock.nowMs, monotonic = clock.monotonicMs;
+  const mutationId = ids.newMutationId, attemptToken = ids.newAttemptToken;
   const leases = new WeakMap<OwnershipLease, Receipt>();
   const pending = new WeakMap<PendingTransition, Pending>();
 

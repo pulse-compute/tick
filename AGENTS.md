@@ -13,6 +13,10 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
   changing the core; deterministic tests do not clear the pending live gates.
 - Read `docs/fastly-kv.md` before changing the adapter or coordination proof. Keep the
   HTTP API and native host paths distinct; preserve full revision strings end to end.
+- TICK-06 adds logical mapping helpers, shared binding capture, and a bounded conformance
+  harness. Read `docs/bindings.md` and `docs/conformance.md` before changing those APIs.
+  Declaration checks perform no provider I/O. Conformance runs write only explicit fresh
+  isolated keys, retain them, await all writes, and never certify a provider from a mode label.
 - TICK-01's live gate remains inconclusive until deployed evidence meets its runbook.
   A passing mock, Viceroy run, or declaration check cannot close a production proof gate.
 - TICK-02's coordination gate also remains inconclusive without deployed evidence.

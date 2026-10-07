@@ -42,7 +42,8 @@ once; `coordinator.key` exposes the resulting canonical job key for inspection.
 
 Each operation performs at most one read and one conditional write. There are no hidden
 contention loops or retries. Construction and invocation validation reject invalid input
-before storage I/O. Full provider setup and binding ergonomics remain TICK-06 work.
+before storage I/O. TICK-06 adds [shared checks and logical provider mappings](bindings.md)
+without changing ownership transitions or provider proof requirements.
 The pure `latestSlot(schedule, nowMs)` export returns the anchored slot or `null` before
 the anchor; it validates safe integer inputs and performs no storage I/O.
 

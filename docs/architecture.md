@@ -10,6 +10,8 @@ TICK-03 adds an experimental [per-job core](core.md) implementing those transiti
 the declared store contract. TICK-04 adds a separate [bounded runner](execution.md).
 TICK-05 adds an [authenticated Fastly receiver](trigger.md) with retained namespace
 admission before job storage. Admission and individual job ownership remain separate.
+TICK-06 adds [shared binding validation and logical mappings](bindings.md) plus a
+[reusable adapter conformance harness](conformance.md); neither certifies a provider.
 There is still no deployed ownership proof or autonomous scheduling loop.
 
 ## Boundaries and bindings
@@ -23,8 +25,9 @@ There is still no deployed ownership proof or autonomous scheduling loop.
 - Pulse is an optional consumer. Tick has no Pulse runtime or package dependency.
 
 `TickDefinition.bindings.coordination` maps a logical `name`, a literal `prefix`, and
-an injected `CoordinationStore`. A future provider factory resolves a store name or
-bucket and host credentials. The core applies the prefix once; the adapter must not
+an injected `CoordinationStore`. TICK-06 resolves that name to a provided adapter or
+explicitly configured Fastly HTTP adapter. Host credentials stay in resolver closures;
+application resources can map other dependencies separately. The core applies the prefix once; the adapter must not
 silently apply it again. Arbitrary application dependencies live in typed `resources`:
 coordination can use KV while observations use S3. Clock, IDs, and telemetry are injected.
 
