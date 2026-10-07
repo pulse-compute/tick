@@ -16,7 +16,7 @@ export async function visitMonitors(
 
 // An application owns effect deduplication in save(); the runner does not supply it.
 export const observe: TickDefinition<MonitorResources>['jobs'][number]['execute'] = async (context, resources) => {
-  const status = await resources.check(context.signal);
+  const status = await resources.check(context.signal, context.transportSignal);
   if (context.signal.aborted) return;
   await resources.observations.save(context.run.id, status);
 };

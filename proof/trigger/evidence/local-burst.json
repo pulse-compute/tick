@@ -1,0 +1,27 @@
+{
+  "schema": "tick.trigger.burst.v1",
+  "mode": "synthetic",
+  "requests": 100,
+  "jobs": 16,
+  "baseline": {
+    "visited": 1600,
+    "executions": 16,
+    "jobReads": 1616,
+    "jobWrites": 1551,
+    "totalStorageCalls": 3167
+  },
+  "admitted": {
+    "sweeps": 1,
+    "visited": 16,
+    "executions": 16,
+    "admissionReads": 101,
+    "admissionWrites": 101,
+    "jobReads": 32,
+    "jobWrites": 32,
+    "totalStorageCalls": 266
+  },
+  "complete": true,
+  "storageReductionPercent": 91.6,
+  "verdict": "inconclusive",
+  "note": "Incoming requests are not suppressed. Atomic reference storage only; no native probe or cross-POP evidence."
+}

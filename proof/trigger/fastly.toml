@@ -1,0 +1,28 @@
+manifest_version = 3
+name = "tick-05-trigger-proof"
+description = "Admission and bounded runner proof; no application effects"
+language = "javascript"
+
+[scripts]
+build = "npm --prefix ../.. run proof:trigger:build"
+
+[local_server.backends.fastly_api]
+url = "https://api.fastly.com"
+
+[[local_server.secret_stores.tick05_secrets]]
+key = "probe-token"
+env = "TICK_PROBE_TOKEN"
+[[local_server.secret_stores.tick05_secrets]]
+key = "fastly-api-token"
+env = "TICK05_FASTLY_API_TOKEN"
+
+[setup.backends.fastly_api]
+address = "api.fastly.com"
+port = 443
+description = "KV HTTP API; verify TLS, hostnames and bounded timeouts per README before activation"
+
+[setup.secret_stores.tick05_secrets]
+[setup.secret_stores.tick05_secrets.entries.probe-token]
+description = "Dedicated 32-256 character base64url probe token"
+[setup.secret_stores.tick05_secrets.entries.fastly-api-token]
+description = "Dedicated scoped API token for a retained proof KV namespace"

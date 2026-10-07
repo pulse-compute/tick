@@ -1,13 +1,13 @@
 // Typechecked wiring only. The caller supplies actual adapters and job execution.
 import { TICK_CONTRACT_VERSION } from '@pulse-compute/tick';
-import type { Clock, CoordinationStore, IdSource, JobDefinition, RunId, TickDefinition } from '@pulse-compute/tick';
+import type { CancellationSignal, Clock, CoordinationStore, IdSource, JobDefinition, RunId, TickDefinition } from '@pulse-compute/tick';
 
 export interface MonitorResources {
   readonly observations: {
     // Application-owned persistence semantics; this signature does not certify deduplication.
     save(runId: RunId, status: number): Promise<void>;
   };
-  readonly check: (signal: AbortSignal) => Promise<number>;
+  readonly check: (signal: CancellationSignal, nativeSignal?: AbortSignal) => Promise<number>;
 }
 
 export function bindMonitor(dependencies: {

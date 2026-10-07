@@ -1,10 +1,10 @@
 import { createJobCoordinator } from './core.js';
 import type { CoordinationResult, JobCoordinator, OwnershipLease } from './core.js';
-import type { Clock, CoordinationRecord, ExecutionContext, JobDefinition, LeasedRecord, RunIdentity, TickDefinition, TickEvent, TickInvocation } from './index.js';
+import type { CancellationController, Clock, CoordinationRecord, ExecutionContext, JobDefinition, LeasedRecord, RunIdentity, TickDefinition, TickEvent, TickInvocation } from './index.js';
 
 /** Host capabilities are explicit: importing the package requires no timers or AbortController. */
 export interface ExecutionRuntime {
-  createAbortController(): { readonly signal: AbortSignal; abort(): void };
+  createCancellationController(): CancellationController;
   /** Schedule once, asynchronously; return an idempotent cancellation function. */
   setTimer(callback: () => void, delayMs: number): () => void;
 }
@@ -55,7 +55,7 @@ function classifyFailure(error: unknown): { disposition: 'retry' | 'failed'; fai
   return { disposition: 'retry', failureCode: 'job-error' };
 }
 
-function validateController(controller: ReturnType<ExecutionRuntime['createAbortController']>): void {
+function validateController(controller: CancellationController): void {
   if (!controller?.signal || typeof controller.abort !== 'function'
     || typeof controller.signal.addEventListener !== 'function' || typeof controller.signal.removeEventListener !== 'function'
     || typeof controller.signal.aborted !== 'boolean' || controller.signal.aborted) throw new TypeError('Invalid Tick abort binding');
@@ -81,7 +81,7 @@ function makeBudget(clock: Clock, deadline: number, margin: number): InvocationB
 export function createRunner<Resources>(definition: TickDefinition<Resources>, runtime: ExecutionRuntime): Runner {
   if (definition.contractVersion !== 1 || !integer(definition.limits.maxJobsPerTick)
     || definition.limits.maxJobsPerTick < 1 || !Array.isArray(definition.jobs)
-    || typeof runtime?.createAbortController !== 'function' || typeof runtime.setTimer !== 'function') {
+    || typeof runtime?.createCancellationController !== 'function' || typeof runtime.setTimer !== 'function') {
     throw new TypeError('Invalid Tick runner configuration');
   }
   const limits = Object.freeze({ ...definition.limits });
@@ -93,7 +93,7 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
   const ids = { newAttemptToken: sourceIds.newAttemptToken.bind(sourceIds), newMutationId: sourceIds.newMutationId.bind(sourceIds) };
   const resources = definition.bindings.resources;
   const emit = definition.bindings.telemetry?.emit.bind(definition.bindings.telemetry);
-  const createController = runtime.createAbortController.bind(runtime);
+  const createController = runtime.createCancellationController.bind(runtime);
   const setTimer = runtime.setTimer.bind(runtime);
   const margin = limits.maxClockSkewMs + limits.deadlineSafetyMs;
   const names = new Set<string>();
@@ -200,7 +200,8 @@ export function createRunner<Resources>(definition: TickDefinition<Resources>, r
             break;
           }
           const context: ExecutionContext = Object.freeze({ run: lease.record.run, attempt: lease.record.attempt,
-            attemptToken: lease.record.attemptToken, deadlineMs: Math.min(lease.deadlineMs, budget.cutoff), signal: jobController.signal });
+            attemptToken: lease.record.attemptToken, deadlineMs: Math.min(lease.deadlineMs, budget.cutoff), signal: jobController.signal,
+            ...(jobController.nativeSignal ? { transportSignal: jobController.nativeSignal } : {}) });
           // Attach rejection handling before racing. Late resolution/rejection never settles storage.
           const execution = Promise.resolve().then(async () => {
             if (check() === null || !coordinator.isUsable(lease)) return { kind: 'aborted' as const };
