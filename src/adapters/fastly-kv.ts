@@ -1,4 +1,5 @@
-import type { ConditionalWrite, CoordinationRecord, CoordinationStore, ReadResult, StoreRevision, WriteResult } from '../index.js';
+import { isCoordinationRecord as isRecord } from '../internal/records.js';
+import type { ConditionalWrite, CoordinationStore, ReadResult, StoreRevision, WriteResult } from '../index.js';
 
 /** Explicit HTTP API binding. This does not use the native fastly:kv-store module. */
 export interface FastlyKvOptions {
@@ -11,38 +12,10 @@ export interface FastlyKvOptions {
 }
 
 const MAX_RECORD_BYTES = 16384;
-const identifier = /^[A-Za-z0-9._-]{1,80}$/;
-const tokenId = /^[A-Za-z0-9._:-]{1,128}$/;
-// Zero is not an accepted revision: native Fastly interfaces use it as the no-condition sentinel.
+// Positive full-width decimal revisions, without Number conversion.
 const uint64 = /^[1-9][0-9]{0,19}$/;
 const isRevision = (value: unknown): value is string => typeof value === 'string' && uint64.test(value)
   && (value.length < 20 || value <= '18446744073709551615');
-const integer = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
-const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
-const matches = (value: unknown, pattern: RegExp): value is string => typeof value === 'string' && pattern.test(value);
-const only = (value: Record<string, unknown>, keys: readonly string[]) => Object.keys(value).every((key) => keys.includes(key));
-
-// Validate at the storage boundary. Type assertions alone cannot validate persisted data.
-function isRecord(value: unknown): value is CoordinationRecord {
-  if (!object(value) || value.contractVersion !== 1 || !matches(value.mutationId, tokenId)
-      || !integer(value.attempt) || value.attempt < 1 || !integer(value.runDeadlineMs) || !object(value.run)) return false;
-  const run = value.run;
-  if (!only(run, ['id', 'namespace', 'jobId', 'scheduleRevision', 'scheduledForMs'])
-      || !matches(run.namespace, identifier) || !matches(run.jobId, identifier)
-      || !matches(run.scheduleRevision, identifier) || !integer(run.scheduledForMs)
-      || run.id !== JSON.stringify(['tick.run.v1', run.namespace, run.jobId, run.scheduleRevision, run.scheduledForMs])) return false;
-  const base = ['contractVersion', 'mutationId', 'run', 'attempt', 'runDeadlineMs', 'state'];
-  switch (value.state) {
-    case 'leased': return only(value, [...base, 'attemptToken', 'leaseExpiresAtMs'])
-      && matches(value.attemptToken, tokenId) && integer(value.leaseExpiresAtMs);
-    case 'retryable': return only(value, [...base, 'nextAttemptAtMs', 'failureCode'])
-      && integer(value.nextAttemptAtMs) && matches(value.failureCode, /^[A-Za-z0-9._:-]{1,80}$/);
-    case 'completed': return only(value, [...base, 'completedAtMs']) && integer(value.completedAtMs);
-    case 'failed': return only(value, [...base, 'failedAtMs', 'reason']) && integer(value.failedAtMs)
-      && ['attempts-exhausted', 'deadline-exceeded', 'permanent-failure'].includes(value.reason as string);
-    default: return false;
-  }
-}
 
 function validateKey(key: string): void {
   if (typeof key !== 'string' || !key || key === '.' || key === '..' || /[#;?^|\n\r]/.test(key)

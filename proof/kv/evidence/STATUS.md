@@ -35,5 +35,7 @@ The explicit HTTP adapter has API credential/latency/rate-limit costs that still
 assessment. Host abort signals are also unavailable in that SDK; elapsed deadlines do not
 cancel an in-flight write. See [adapter notes](../../../docs/fastly-kv.md).
 
-TICK-03 remains gated on TICK-01 and TICK-02 deployed evidence. No local result changes
-either ticket's live status, and no scheduler/ownership transition implementation is shipped.
+At the time of these TICK-02 measurements, no ownership transition implementation was shipped.
+TICK-03 subsequently adds an experimental deterministic core at the user's request. Neither
+ticket's live status changes; deployed integration remains gated on TICK-01 and TICK-02 evidence.
+The measurements and guest artifact above remain the historical TICK-02 results.

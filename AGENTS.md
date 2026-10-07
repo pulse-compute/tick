@@ -6,7 +6,9 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 
 - Read `docs/architecture.md` and the current ticket in `docs/roadmap.md` first.
 - TICK-00 is a draft contract and package foundation. TICK-02 adds an explicit HTTP KV
-  adapter candidate; there is still no scheduler or supported native JavaScript KV adapter.
+  adapter candidate. TICK-03 adds an experimental per-job ownership core, with no executor,
+  scheduling loop, or supported native JavaScript KV adapter. Read `docs/core.md` before
+  changing the core; deterministic tests do not clear the pending live gates.
 - Read `docs/fastly-kv.md` before changing the adapter or coordination proof. Keep the
   HTTP API and native host paths distinct; preserve full revision strings end to end.
 - TICK-01's live gate remains inconclusive until deployed evidence meets its runbook.

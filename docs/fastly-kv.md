@@ -3,7 +3,8 @@
 **Live verdict: INCONCLUSIVE.** This ticket provides an HTTP KV adapter and a bounded
 proof harness. No deployed concurrency result has been collected. The native JavaScript
 SDK path is unsupported by the pinned SDK; the HTTP path is explicit, not an automatic
-fallback. TICK-03 still requires the deployed trigger and coordination gates.
+fallback. TICK-03 now supplies an experimental core against the declared store contract;
+deployed integration still requires the trigger and coordination gates.
 
 ## Why the HTTP path
 
@@ -65,8 +66,9 @@ Invalid caller keys/records/preconditions throw a sanitized TypeError before sto
 The adapter validates contract-v1 record shape, canonical run identity, nonnegative safe
 integer timestamps, positive attempts, and bounded IDs/failure codes. Mutation and attempt
 tokens use `[A-Za-z0-9._:-]{1,128}`; failure codes use that alphabet with an 80-character
-limit. Reads are capped at 16 KiB. Configuration/schedule policy validation is still TICK-06;
-checking the record shape does not authorize any transition or execution.
+limit. Reads are capped at 16 KiB. The TICK-03 core validates its own schedule and limits;
+full provider setup and binding ergonomics remain TICK-06. Checking the record shape does
+not authorize any transition or execution.
 
 ## What the proof must establish
 
@@ -88,7 +90,7 @@ observed platform faults. Multiple successful contenders or a stale successful r
 are failures. Missing results, transient errors, throttling, or insufficient POP diversity
 are inconclusive. Synthetic runs cannot pass a live gate. A finite live pass describes only
 the measured API path and experiment; it does not prove perpetual global correctness or
-native host semantics. Review the complete trace and selected deployment before TICK-03.
+native host semantics. Review the complete trace and selected deployment before deployed integration.
 
 Viceroy 0.21.1 is useful for guest integration, but is not the conditional-write oracle:
 its local object-store generation/add check precedes a separate mutation lock, and a
