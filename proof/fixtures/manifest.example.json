@@ -1,0 +1,17 @@
+{
+  "schema": "tick.proof.manifest.v1",
+  "mode": "synthetic",
+  "experiment": "example-only-not-live-evidence",
+  "receiverServiceId": "local",
+  "intervalMs": 1000,
+  "maxGapMs": 2000,
+  "probeTimeoutMs": 500,
+  "collectionComplete": false,
+  "healthcheckConfigVerified": false,
+  "phases": [
+    { "name": "baseline", "startMs": 0, "endMs": 10000 },
+    { "name": "idle", "startMs": 10000, "endMs": 20000, "noExternalTraffic": false },
+    { "name": "redeploy", "startMs": 20000, "endMs": 30000, "expectedVersions": ["1", "2"] },
+    { "name": "burst", "startMs": 30000, "endMs": 31000 }
+  ]
+}

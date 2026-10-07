@@ -1,0 +1,17 @@
+manifest_version = 3
+name = "tick-01-probe-receiver"
+description = "Bounded Fastly trigger viability proof; not a scheduler"
+language = "javascript"
+
+[scripts]
+build = "npm run build"
+
+[[local_server.secret_stores.tick_secrets]]
+key = "probe-token"
+env = "TICK_PROBE_TOKEN"
+
+[setup.secret_stores.tick_secrets]
+[setup.secret_stores.tick_secrets.entries.probe-token]
+description = "Dedicated 32-256 character base64url proof token; never commit it"
+
+[setup.log_endpoints.tick_evidence]

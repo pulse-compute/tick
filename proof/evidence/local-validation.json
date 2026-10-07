@@ -1,0 +1,22 @@
+{
+  "ticket": "TICK-01",
+  "validationMode": "local-only",
+  "liveDecision": "INCONCLUSIVE",
+  "unitTests": {
+    "passed": 24,
+    "failed": 0
+  },
+  "build": {
+    "sdk": "@fastly/js-compute@3.45.0",
+    "wasmBytes": 11547830,
+    "wasmSha256": "674303fd52b047def0e6f78e28c1d7550c55467f371b9201a41bc909be598b98"
+  },
+  "runtime": {
+    "node": "v24.19.0",
+    "viceroy": "0.21.1",
+    "fastlyCli": "16.1.0"
+  },
+  "guestSmoke": "local-smoke.json",
+  "liveObservations": null,
+  "reason": "No Fastly credentials or selected deployment target were available; no live services were deployed."
+}
