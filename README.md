@@ -19,13 +19,14 @@ and [operations](docs/operations.md) before choosing a production provider.
 ## Install
 
 Node 22+ is required for the Node example. ESM and TypeScript declarations are included.
-After the first npm publication, install the beta with:
+Once a versioned beta is published, install it with:
 
 ```sh
 npm install @pulse-compute/tick@beta
 ```
 
-Until then, use a private review tarball from the manual **Private Tick package artifact**
+The npm bootstrap reserves version `0.0.0`; it does not create a `beta` dist-tag.
+Until the first beta, use a private review tarball from the manual **Private Tick package artifact**
 workflow, or build one from a clean committed checkout:
 
 ```sh
