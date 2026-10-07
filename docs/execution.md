@@ -3,7 +3,7 @@
 `@pulse-compute/tick/runner` exports `createRunner(definition, runtime)` and `JobFailure`.
 The runner executes a bounded sequential slice of a `TickDefinition` when its caller
 invokes `tick(invocation, { startAt })`. It is experimental while the TICK-01/02 live
-gates remain pending. Fastly trigger integration and POP admission belong to TICK-05.
+gates remain pending. TICK-05 adds experimental [Fastly trigger admission](trigger.md).
 
 ## Host and application bindings
 
@@ -17,7 +17,11 @@ import { createRunner, JobFailure } from '@pulse-compute/tick/runner';
 import type { ExecutionRuntime } from '@pulse-compute/tick/runner';
 
 const runtime: ExecutionRuntime = {
-  createAbortController: () => new AbortController(),
+  createCancellationController() {
+    const controller = new AbortController();
+    return { signal: controller.signal, nativeSignal: controller.signal,
+      abort: () => controller.abort() };
+  },
   setTimer(callback, delayMs) {
     const handle = setTimeout(callback, delayMs);
     return () => clearTimeout(handle);
@@ -32,8 +36,25 @@ const result = await runner.tick(invocation);
 The runtime must produce a fresh working signal/controller on each call, schedule timer
 callbacks asynchronously on the same elapsed-time basis as the clock, support the
 configured duration range, and return idempotent timer cancellation functions. The
-standard host snippet is not a Fastly compatibility shim: the pinned Fastly SDK has no
-AbortController. A supported host binding must be supplied and proved during integration.
+standard host snippet uses native transport cancellation. For Fastly SDK 3.45.0, which
+has timers but no native AbortController/fetch signal, use:
+
+```ts
+import { createCooperativeController } from '@pulse-compute/tick/cancellation';
+const runtime: ExecutionRuntime = {
+  createCancellationController: createCooperativeController,
+  setTimer(callback, delayMs) {
+    const handle = setTimeout(callback, delayMs);
+    return () => clearTimeout(handle);
+  },
+};
+```
+
+`CancellationSignal` exposes `aborted` and abort-listener registration/removal. It is a
+notification contract, not a native DOM AbortSignal. The cooperative helper cancels once
+and contains listener exceptions. It has no `nativeSignal` and cannot cancel host fetch.
+TICK-05 renames the private draft runtime factory from `createAbortController` to
+`createCancellationController`; callers must update their explicit host binding.
 
 Construction validates contract version, unique job IDs, callable execution/runtime
 bindings, schedules, coordination capabilities, and positive visit/time limits. Jobs,
@@ -122,7 +143,10 @@ where effects occur. Merely checking a key and then performing an unconditional 
 does not establish deduplication. HTTP effects require a receiver-enforced idempotency
 key or another explicit policy. Multi-resource effects require an application protocol.
 
-Forward `context.signal` to cancellable operations and respect `context.deadlineMs`.
+Pass `context.signal` to operations accepting the cooperative contract and respect
+`context.deadlineMs`. Forward `context.transportSignal` to native fetch only when present;
+the runtime must bind it to the same attempt's actual native controller. Fastly transports
+must use configured backend timeouts instead. No native signal is inferred or fabricated.
 These local checks do not atomically authorize a downstream commit. A worker that ignores
 cancellation can physically overlap a successor, and cancellation cannot undo sent
 requests. Neither lease ownership, an attempt token, telemetry, nor a successful runner

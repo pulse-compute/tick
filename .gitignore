@@ -1,4 +1,5 @@
 node_modules/
+proof/trigger/bin/
 bin/
 pkg/
 .env
@@ -6,5 +7,6 @@ pkg/
 *.local.json
 proof/evidence/live/
 proof/kv/evidence/live/
+proof/trigger/evidence/live/
 dist/
 *.tgz

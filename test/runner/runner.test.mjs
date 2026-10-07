@@ -33,7 +33,7 @@ function fixture({ execute = async () => {}, jobs, limits = {}, telemetry } = {}
     },
   };
   const runtime = {
-    createAbortController: () => new AbortController(),
+    createCancellationController: () => new AbortController(),
     setTimer(callback, delayMs) {
       assert.ok(Number.isSafeInteger(delayMs) && delayMs > 0);
       const timer = { at: mono + delayMs, callback };
@@ -397,6 +397,22 @@ test('each attempt gets a distinct signal revoked before the next job starts', a
   assert.equal(result.results.every((r) => r.record.state === 'completed'), true);
 });
 
+test('native transport cancellation is exposed only through an explicit host binding', async () => {
+  let context;
+  const f = fixture({ execute: async (value) => { context = value; } });
+  await f.runner.tick(f.invocation());
+  assert.equal(context.transportSignal, undefined);
+  const runtime = { ...f.runtime, createCancellationController() {
+    const controller = new AbortController();
+    return { signal: controller.signal, nativeSignal: controller.signal, abort: () => controller.abort() };
+  } };
+  f.advance(100);
+  await createRunner(f.definition, runtime).tick(f.invocation());
+  assert.equal(context.transportSignal, context.signal);
+  assert.ok(context.transportSignal instanceof AbortSignal);
+  assert.equal(context.transportSignal.aborted, true);
+});
+
 test('hostile thrown proxies cannot escape sanitized application failure handling', async () => {
   const error = new Proxy({}, { getPrototypeOf() { throw new Error('secret-from-getter'); } });
   const f = fixture({ execute: async () => { throw error; } });
@@ -409,7 +425,7 @@ test('hostile thrown proxies cannot escape sanitized application failure handlin
 test('standard host timers abort an uncooperative job without a polling loop', async () => {
   const f = fixture({ execute: async () => new Promise(() => {}), limits: { leaseMs: 30, maxClockSkewMs: 0, deadlineSafetyMs: 1 } });
   f.definition.bindings.clock = { nowMs: () => Date.now(), monotonicMs: () => performance.now() };
-  const runtime = { createAbortController: () => new AbortController(), setTimer(callback, delayMs) {
+  const runtime = { createCancellationController: () => new AbortController(), setTimer(callback, delayMs) {
     const timer = setTimeout(callback, delayMs);
     return () => clearTimeout(timer);
   } };

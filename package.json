@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "npm run test:contracts && npm run test:core && npm run test:runner && npm run test:adapters && npm run test:proof && npm run test:kv-proof",
+    "test": "npm run test:contracts && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof",
     "build": "tsc -p tsconfig.json",
     "proof:local": "node proof/scripts/local-server.mjs",
     "proof:burst": "node proof/scripts/burst.mjs",
@@ -21,10 +21,14 @@
     "test:adapters": "node --test test/adapters/*.test.mjs",
     "test:core": "node --test test/core/*.test.mjs",
     "test:runner": "node --test test/runner/*.test.mjs",
+    "test:trigger": "node --test test/trigger/*.test.mjs",
     "test:kv-proof": "node --test proof/kv/test/*.test.mjs",
     "proof:kv:build": "npm run build && js-compute-runtime proof/kv/src/fastly.js proof/kv/bin/main.wasm",
     "proof:kv": "node proof/kv/run.mjs",
-    "proof:kv:smoke": "node proof/kv/smoke.mjs"
+    "proof:kv:smoke": "node proof/kv/smoke.mjs",
+    "proof:trigger:burst": "node proof/trigger/burst.mjs",
+    "proof:trigger:build": "npm run build && js-compute-runtime proof/trigger/src/fastly.js proof/trigger/bin/main.wasm",
+    "proof:trigger:smoke": "node proof/trigger/smoke.mjs"
   },
   "devDependencies": {
     "@fastly/js-compute": "3.45.0",
@@ -47,6 +51,16 @@
       "import": "./dist/runner.js",
       "default": "./dist/runner.js"
     },
+    "./cancellation": {
+      "types": "./dist/cancellation.d.ts",
+      "import": "./dist/cancellation.js",
+      "default": "./dist/cancellation.js"
+    },
+    "./adapters/fastly-trigger": {
+      "types": "./dist/adapters/fastly-trigger.d.ts",
+      "import": "./dist/adapters/fastly-trigger.js",
+      "default": "./dist/adapters/fastly-trigger.js"
+    },
     "./adapters/fastly-kv": {
       "types": "./dist/adapters/fastly-kv.d.ts",
       "import": "./dist/adapters/fastly-kv.js",
@@ -59,7 +73,8 @@
     "docs/architecture.md",
     "docs/fastly-kv.md",
     "docs/core.md",
-    "docs/execution.md"
+    "docs/execution.md",
+    "docs/trigger.md"
   ],
   "sideEffects": false
 }

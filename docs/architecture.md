@@ -8,11 +8,15 @@ TICK-02 adds a separate [HTTP KV adapter candidate](fastly-kv.md); its deployed 
 remains pending, and it does not implement the ownership transitions described here.
 TICK-03 adds an experimental [per-job core](core.md) implementing those transitions against
 the declared store contract. TICK-04 adds a separate [bounded runner](execution.md).
+TICK-05 adds an [authenticated Fastly receiver](trigger.md) with retained namespace
+admission before job storage. Admission and individual job ownership remain separate.
 There is still no deployed ownership proof or autonomous scheduling loop.
 
 ## Boundaries and bindings
 
 - The trigger adapter authenticates incoming signals; a signal is not ownership.
+- A retained admission record limits sweeps before job scans. Each visited job still
+  requires a separate atomic claim; admission is not a cross-key transaction.
 - The core calculates eligible intervals and conditionally changes job records.
 - The coordination adapter provides atomic operations on one key, without a clock predicate.
 - The executor owns application behavior, effect deduplication, and downstream commit rules.
@@ -128,8 +132,9 @@ commit guard. Tick makes no exactly-once execution/delivery promise.
 
 `maxJobsPerTick` bounds all visited jobs, including misses and contention. The runner
 allows at most one reconciliation for each claim/settlement and one execution per visit.
-Per-job CAS does not prevent a POP storm from generating storage traffic; admission
-before job scanning and its measured amplification belong to TICK-05.
+Per-job CAS does not prevent a POP storm from generating storage traffic. TICK-05's
+retained admission bounds job scans while incoming requests and admission I/O still
+scale with arrivals; see its [bounds and local measurements](trigger.md).
 
 ## Validation and evidence
 

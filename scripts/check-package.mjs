@@ -17,10 +17,12 @@ try {
   for (const required of ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts',
     'dist/core.js', 'dist/core.d.ts', 'dist/internal/records.js', 'docs/core.md',
     'dist/runner.js', 'dist/runner.d.ts', 'docs/execution.md',
+    'dist/cancellation.js', 'dist/cancellation.d.ts', 'docs/trigger.md',
+    'dist/adapters/fastly-trigger.js', 'dist/adapters/fastly-trigger.d.ts',
     'dist/adapters/fastly-kv.js', 'dist/adapters/fastly-kv.d.ts', 'docs/architecture.md', 'docs/fastly-kv.md']) {
     assert.ok(files.includes(required), `Missing packed file: ${required}`);
   }
-  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md'].includes(path) || path.startsWith('dist/')),
+  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md', 'docs/trigger.md'].includes(path) || path.startsWith('dist/')),
     'Proof tools, credentials, examples and dev dependencies must stay out of the package');
   const consumer = join(directory, 'consumer');
   await mkdir(consumer);
@@ -30,11 +32,18 @@ try {
 import { createFastlyKvStore } from '@pulse-compute/tick/adapters/fastly-kv';
 import { createJobCoordinator, latestSlot } from '@pulse-compute/tick/core';
 import { createRunner, JobFailure } from '@pulse-compute/tick/runner';
+import { createFastlyTrigger } from '@pulse-compute/tick/adapters/fastly-trigger';
+import { createCooperativeController } from '@pulse-compute/tick/cancellation';
 import assert from 'node:assert/strict';
 assert.deepEqual(Object.keys(tick), ['TICK_CONTRACT_VERSION']);
 assert.equal(tick.TICK_CONTRACT_VERSION, 1);
 assert.equal(typeof createJobCoordinator, 'function');
 assert.equal(typeof createRunner, 'function');
+assert.equal(typeof createFastlyTrigger, 'function');
+const controller = createCooperativeController();
+controller.abort();
+assert.equal(controller.signal.aborted, true);
+assert.equal(controller.nativeSignal, undefined);
 assert.equal(new JobFailure('permanent', 'invalid-target').disposition, 'permanent');
 assert.equal(latestSlot({ kind: 'interval', anchorMs: 10, everyMs: 20, revision: 'v1', missedWindows: 'skip' }, 51), 50);
 const store = createFastlyKvStore({ storeId: 'test', token: async () => 'test', fetch: async () => new Response(null, { status: 404 }) });
@@ -48,10 +57,18 @@ import { createJobCoordinator } from '@pulse-compute/tick/core';
 import type { CoordinatorOptions, JobCoordinator, OwnershipLease, PendingTransition } from '@pulse-compute/tick/core';
 import { createRunner } from '@pulse-compute/tick/runner';
 import type { ExecutionRuntime, Runner } from '@pulse-compute/tick/runner';
+import { createFastlyTrigger } from '@pulse-compute/tick/adapters/fastly-trigger';
+import type { FastlyTriggerOptions } from '@pulse-compute/tick/adapters/fastly-trigger';
+import { createCooperativeController } from '@pulse-compute/tick/cancellation';
 import type { TickDefinition } from '@pulse-compute/tick';
 declare const definition: TickDefinition<{ observations: unknown }>;
 declare const runtime: ExecutionRuntime;
 const runner: Runner = createRunner(definition, runtime);
+declare const triggerOptions: FastlyTriggerOptions<{ observations: unknown }>;
+const receiver: (request: Request) => Promise<Response> = createFastlyTrigger(triggerOptions);
+const cooperative = createCooperativeController();
+// @ts-expect-error Cooperative notification is not a native fetch AbortSignal.
+const native: AbortSignal = cooperative.signal;
 // @ts-expect-error The host must explicitly bind cancellation and timers.
 createRunner(definition);
 declare const options: CoordinatorOptions;
@@ -67,7 +84,7 @@ const result: Promise<WriteResult> = adapter.compareAndSwap({
   // @ts-expect-error Runtime records must satisfy the contract, not arbitrary JSON.
   value: { state: 'running' }
 });
-void [version, result, httpAdapter, coordinator, lease, runner];
+void [version, result, httpAdapter, coordinator, lease, runner, receiver, native];
 `);
   run(process.execPath, [resolve('node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--module', 'NodeNext',
     '--target', 'ES2022', '--lib', 'ES2022,DOM', 'consumer.ts'], consumer);

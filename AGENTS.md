@@ -7,7 +7,8 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 - Read `docs/architecture.md` and the current ticket in `docs/roadmap.md` first.
 - TICK-00 is a draft contract and package foundation. TICK-02 adds an explicit HTTP KV
   adapter candidate. TICK-03 adds an experimental per-job ownership core; TICK-04 adds a
-  bounded runner with explicit host bindings. There is no autonomous scheduling loop or
+  bounded runner with explicit host bindings. TICK-05 adds authenticated admission before
+  job scanning; read `docs/trigger.md` before changing the receiver. There is no autonomous scheduling loop or
   supported native JavaScript KV adapter. Read `docs/core.md` and `docs/execution.md` before
   changing the core; deterministic tests do not clear the pending live gates.
 - Read `docs/fastly-kv.md` before changing the adapter or coordination proof. Keep the
@@ -36,6 +37,10 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 - Telemetry is observational; it cannot grant ownership or decide application actions.
 - The runner must not dispatch without a usable positive claim, loop on contention, or
   detach coordination writes. Job cancellation is cooperative; late job outcomes cannot settle.
+- Admission and jobs use distinct prefixes and retained records. A gate lease does not
+  authorize job execution. Preserve bounded per-request counters and scan rotation.
+- Cooperative cancellation signals are not native fetch signals. Bind native transport
+  cancellation explicitly where supported; otherwise use verified backend timeouts.
 
 ## Validation and delivery
 
@@ -43,6 +48,7 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
   and the existing focused proof tests.
 - Run `npm run proof:build` when changing the proof, Fastly build command, lockfile, or CI.
   Run `npm run proof:kv:build` when changing the KV adapter or its guest proof.
+  Run `npm run proof:trigger:build` when changing the integrated trigger or its guest.
   Use the Viceroy smoke runner when changing guest runtime behavior.
 - Preserve historical evidence as historical. Record new results separately and distinguish
   local validation from deployed observations. Do not rewrite a pending gate into a pass.

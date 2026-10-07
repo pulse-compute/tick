@@ -130,6 +130,20 @@ export interface IntervalSchedule {
   readonly missedWindows: 'skip';
 }
 
+/** Cooperative cancellation only. This interface is not a native fetch AbortSignal. */
+export interface CancellationSignal {
+  readonly aborted: boolean;
+  addEventListener(type: 'abort', listener: () => void, options?: { readonly once?: boolean }): void;
+  removeEventListener(type: 'abort', listener: () => void): void;
+}
+
+export interface CancellationController {
+  readonly signal: CancellationSignal;
+  /** Set only by a host binding that supplies a real native transport signal. */
+  readonly nativeSignal?: AbortSignal;
+  abort(): void;
+}
+
 export interface ExecutionContext {
   readonly run: RunIdentity;
   readonly attempt: number;
@@ -137,7 +151,9 @@ export interface ExecutionContext {
   /** Conservative local budget, no later than invocation/run/lease bounds minus margins. */
   readonly deadlineMs: number;
   /** Cooperative cancellation cannot undo a dispatched HTTP request or side effect. */
-  readonly signal: AbortSignal;
+  readonly signal: CancellationSignal;
+  /** Optional native transport cancellation; absent on the pinned Fastly JS runtime. */
+  readonly transportSignal?: AbortSignal;
 }
 
 export interface JobDefinition<Resources> {
@@ -187,5 +203,5 @@ export interface TickDefinition<Resources> {
 export interface TickInvocation {
   readonly requestId: string;
   readonly deadlineMs: number;
-  readonly signal: AbortSignal;
+  readonly signal: CancellationSignal;
 }

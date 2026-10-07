@@ -10,8 +10,8 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
 | TICK-01 | Authenticated Fastly probe receiver and evidence harness; measure idle continuity, deployment gaps, routing, timeout, and POP arrivals. | Sol 6.1 / High | PR #1 merged; live viability pending. |
 | TICK-02 | Minimal KV adapter plus deployed concurrency, stale-read, lost-response, and takeover proof. | Astra / Ultra | PR #3 merged; HTTP adapter/harness implemented, live gate pending. Native JS SDK binding unsupported. |
 | TICK-03 | Fixed-interval eligibility and ownership transitions; deterministic tests of run identity, recovery, and stale-owner rejection. | Astra / Ultra | PR #4 merged; experimental core, deployed guarantees remain blocked on 01/02 gates. |
-| TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | Experimental runner implemented at user request; host/deployed integration pending. |
-| TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | After 04; pending. |
+| TICK-04 | Bounded execution, retries, cancellation/deadline propagation, crash recovery, and application effect contract. | Sol 6.1 / High | PR #5 merged; experimental runner, deployed guarantees pending. |
+| TICK-05 | Fastly trigger integration and admission before job scanning; measure request and storage amplification under duplicates. | Sol 6.1 / High | Experimental receiver and local amplification/guest checks implemented at user request; live integration gate pending. |
 | TICK-06 | Runtime binding validation, ergonomic provider configuration, and reusable adapter conformance suite. | Sol 6.1 / High | After 02–05; pending. |
 | TICK-07 | S3 conditional-write adapter; deployed conformance including ambiguous outcomes and stale-owner rejection. | Sol 6.1 / High | After 06; pending, unless needed earlier as coordination fallback. |
 | TICK-08 | One practical HTTP monitor with KV coordination/S3 observations; verify Pulse boundary and standalone usage. | Sol 6.1 / High | After 06; needs 07 only if coordinating via S3. |
@@ -27,7 +27,9 @@ admission, recoverable attempts, bounded execution, and explicit dependency bind
    write outcomes. If KV cannot enforce the contract, prove S3 before deployed integration; do not
    substitute a read/put lock or weaken the ownership claim.
 3. **Integration viability (05):** require measured duplicate suppression, bounded
-   storage work, and crash recovery before expanding adapters or consumers.
+   storage work, and crash recovery on deployed infrastructure before expanding adapters
+   or consumers. Include native probe POP contention, host/backend timeouts, and provider
+   latency/quotas; the local atomic reference store does not clear this gate.
 
 TICK-00 may proceed while live evidence is pending because it defines requirements
 without implementing a scheduler. TICK-02 can likewise investigate storage independently
@@ -38,6 +40,10 @@ and injected faults; they do not certify Fastly storage, trigger continuity, or 
 The [core notes](core.md) document the experimental API and its authority limits.
 TICK-04 adds [bounded execution](execution.md) against that protocol with injected host
 capabilities. Its local cancellation/recovery tests also leave the live gates pending.
+TICK-05 wires [namespace admission](trigger.md) and the runner into a compiled Fastly
+guest, with explicit cooperative host cancellation and bounded duplicate-burst evidence.
+Its [new evidence status](../proof/trigger/evidence/STATUS.md) distinguishes the local
+reference comparison and Viceroy HTTP fixture from the still-pending deployed integration.
 
 TICK-01's checked-in [evidence status](../proof/evidence/STATUS.md) remains authoritative.
 The existing local results demonstrate receiver/harness behavior; native probe timing,

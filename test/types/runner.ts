@@ -12,5 +12,5 @@ createRunner(definition, { setTimer: runtime.setTimer });
 // @ts-expect-error Failure disposition is deliberate, not arbitrary error text.
 new JobFailure('maybe', 'failure');
 // @ts-expect-error A timer binding must return its cleanup function.
-const badRuntime: ExecutionRuntime = { createAbortController: runtime.createAbortController, setTimer() {} };
+const badRuntime: ExecutionRuntime = { createCancellationController: runtime.createCancellationController, setTimer() {} };
 void badRuntime;
