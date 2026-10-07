@@ -24,6 +24,11 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
   and `proof/s3/README.md` before changes. Keep ETags opaque/quoted, capture exact write
   conditions before awaits, and preserve unknown outcomes. Signing is a host binding;
   disable transport retries, caching and redirects. S3 live evidence is still pending.
+- TICK-08 adds `apps/http-monitor`, a public-export consumer with KV coordination and
+  application-owned immutable S3 observations. Read its README before changes. Keep
+  probe health failures separate from execution/storage failure; a saved first snapshot
+  is recoverable across attempts, not exactly-once probing or an owner-fenced effect.
+  The optional Pulse shim is a capability contract, not a tested Pulse SDK integration.
 - Keep changes within the named ticket. Do not add queues, cron syntax, workflow engines,
   dashboard UI, background daemons, or an Uptime Kuma port as incidental work.
 - Package naming is provisional. Keep `private: true`; no publication/release is authorized
@@ -59,6 +64,9 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
   Run `npm run proof:trigger:build` when changing the integrated trigger or its guest.
   Run `npm run proof:s3:build` when changing the S3 adapter, mapping, signer or guest.
   Use the Viceroy smoke runner when changing guest runtime behavior.
+- Run `npm run test:monitor` for monitor changes (also included in `npm test`). Build
+  `monitor:guest:build` and run its actual Viceroy smoke for guest/host behavior changes.
+  Keep the app/signer out of the packed Tick artifact and verify isolated public imports.
 - Preserve historical evidence as historical. Record new results separately and distinguish
   local validation from deployed observations. Do not rewrite a pending gate into a pass.
 - Open a reviewable PR with the concrete changes, validation, and remaining proof limitations.

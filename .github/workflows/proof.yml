@@ -22,3 +22,4 @@ jobs:
       - run: npm run proof:kv:build
       - run: npm run proof:trigger:build
       - run: npm run proof:s3:build
+      - run: npm run monitor:guest:build

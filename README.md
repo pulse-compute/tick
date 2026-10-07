@@ -25,6 +25,10 @@ is disabled.
 - **TICK-07:** An explicit S3 conditional-write adapter, `s3-http` mapping, and a signed
   Fastly conformance receiver covering lost replies and stale-owner rejection.
   **Live S3 coordination remains INCONCLUSIVE.**
+- **TICK-08:** A standalone HTTP monitor with KV admission/coordination, immutable S3
+  observations, explicit Node/Fastly hosts and an optional Pulse probe boundary.
+  [The runnable example](apps/http-monitor/README.md) includes recovery checks and setup.
+  **Deployed monitor behavior remains INCONCLUSIVE.**
 
 The experimental core is exported from `@pulse-compute/tick/core` and the runner from
 `@pulse-compute/tick/runner`. The experimental receiver is exported from
@@ -73,6 +77,8 @@ npm run proof:kv:build   # separate KV proof guest -> proof/kv/bin/main.wasm
 npm run proof:trigger:build # integrated receiver -> proof/trigger/bin/main.wasm
 npm run proof:trigger:burst # bounded reference comparison; synthetic evidence
 npm run proof:s3:build   # signed S3 conformance guest -> proof/s3/bin/main.wasm
+npm run test:monitor     # practical monitor + isolated packed-package consumer
+npm run monitor:guest:build # application guest -> apps/http-monitor/bin/main.wasm
 ```
 
 `fastly compute build` uses `proof:build` via `fastly.toml`. `npm pack` builds the package;
@@ -91,6 +97,7 @@ runtime dependencies**; the Fastly SDK is only a development dependency for the 
 - [Fastly KV adapter](docs/fastly-kv.md): explicit HTTP transport and native SDK limitation.
 - [S3 adapter](docs/s3.md): conditional PUT, opaque ETags and explicit signed transport.
 - [S3 proof runbook](proof/s3/README.md): conformance, stale owners, SigV4 and evidence.
+- [Practical HTTP monitor](apps/http-monitor/README.md): KV/S3 mappings, hosts, recovery and Pulse boundary.
 - [Coordination proof runbook](proof/kv/README.md): deployment, bounded cases, and evidence.
 - [Ticket roadmap](docs/roadmap.md): scope, model/effort assignments, and proof gates.
 - [Contributor rules](AGENTS.md): preserve the boundaries while implementing later tickets.
