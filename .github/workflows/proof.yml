@@ -1,4 +1,4 @@
-name: TICK-01 proof
+name: Tick contracts and proof
 on:
   push:
     branches: [main]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  local-proof:
+  contracts-and-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -18,4 +18,4 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm test
       - run: npm run proof:smoke
-      - run: npm run build
+      - run: npm run proof:build

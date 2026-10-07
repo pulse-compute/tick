@@ -33,4 +33,5 @@ were available in this session. Therefore there is no evidence yet for:
 The [runbook](../README.md) supplies configuration tooling, capture protocol, thresholds,
 analysis, and teardown. The live gate remains open; **do not advance dependent scheduler
 work on the assumption that this proof passed**. TICK-02's coordination proof may proceed
-independently. TICK-00 remains unimplemented beyond the minimal scaffold needed here.
+independently. TICK-00 now supplies the package and protocol contract; it does not close
+this live gate. The measurements above remain the historical TICK-01 results.
