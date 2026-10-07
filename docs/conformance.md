@@ -1,7 +1,9 @@
 # TICK-06 reusable adapter conformance
 
 `@pulse-compute/tick/testing/conformance` exports `runStoreConformance(options)` and
-its typed report/options. It imports no Node APIs, test framework, provider SDK, timers,
+its typed report/options. TICK-07's [S3 proof](../proof/s3/README.md) runs the same suite
+through independent signed Fastly invocations and adds stale-owner authority cases.
+The harness imports no Node APIs, test framework, provider SDK, timers,
 or credentials. An adapter author can invoke it from a test, a controlled host, or an
 operator-owned driver. **Calling it writes retained records**; construction helpers and
 application startup never run it automatically.

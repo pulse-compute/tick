@@ -20,6 +20,10 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 - TICK-01's live gate remains inconclusive until deployed evidence meets its runbook.
   A passing mock, Viceroy run, or declaration check cannot close a production proof gate.
 - TICK-02's coordination gate also remains inconclusive without deployed evidence.
+- TICK-07 adds an explicit S3 HTTP candidate and signed proof guest. Read `docs/s3.md`
+  and `proof/s3/README.md` before changes. Keep ETags opaque/quoted, capture exact write
+  conditions before awaits, and preserve unknown outcomes. Signing is a host binding;
+  disable transport retries, caching and redirects. S3 live evidence is still pending.
 - Keep changes within the named ticket. Do not add queues, cron syntax, workflow engines,
   dashboard UI, background daemons, or an Uptime Kuma port as incidental work.
 - Package naming is provisional. Keep `private: true`; no publication/release is authorized
@@ -53,6 +57,7 @@ Tick is a standalone repository. Do not add dependencies on the Pulse monorepo.
 - Run `npm run proof:build` when changing the proof, Fastly build command, lockfile, or CI.
   Run `npm run proof:kv:build` when changing the KV adapter or its guest proof.
   Run `npm run proof:trigger:build` when changing the integrated trigger or its guest.
+  Run `npm run proof:s3:build` when changing the S3 adapter, mapping, signer or guest.
   Use the Viceroy smoke runner when changing guest runtime behavior.
 - Preserve historical evidence as historical. Record new results separately and distinguish
   local validation from deployed observations. Do not rewrite a pending gate into a pass.

@@ -1,11 +1,14 @@
 import { createFastlyKvStore } from './adapters/fastly-kv.js';
 import type { FastlyKvOptions } from './adapters/fastly-kv.js';
+import { createS3Store } from './adapters/s3.js';
+import type { S3Options } from './adapters/s3.js';
 import type { Clock, CoordinationBinding, CoordinationStore, IdSource, Telemetry, TickDefinition } from './index.js';
 import { captureClock, captureCoordination, captureIds, captureTelemetry } from './internal/bindings.js';
 
 export type CoordinationMapping =
   | { readonly kind: 'provided'; readonly store: CoordinationStore }
-  | { readonly kind: 'fastly-kv-http'; readonly options: FastlyKvOptions };
+  | { readonly kind: 'fastly-kv-http'; readonly options: FastlyKvOptions }
+  | { readonly kind: 's3-http'; readonly options: S3Options };
 export type CoordinationMappings = Readonly<Record<string, CoordinationMapping>>;
 export interface CoordinationReference { readonly name: string; readonly prefix: string }
 export interface BindingOptions<Resources> {
@@ -26,7 +29,8 @@ export function createCoordinationBinding(reference: CoordinationReference, stor
       || !stores || !Object.prototype.hasOwnProperty.call(stores, reference.name)) throw new TypeError();
     const mapping = stores[reference.name];
     const store = mapping?.kind === 'provided' ? mapping.store
-      : mapping?.kind === 'fastly-kv-http' ? createFastlyKvStore(mapping.options) : undefined;
+      : mapping?.kind === 'fastly-kv-http' ? createFastlyKvStore(mapping.options)
+      : mapping?.kind === 's3-http' ? createS3Store(mapping.options) : undefined;
     if (!store) throw new TypeError();
     return captureCoordination({ name: reference.name, prefix: reference.prefix, store });
   } catch { throw new TypeError('Invalid Tick coordination mapping'); }

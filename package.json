@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof",
+    "test": "npm run test:contracts && npm run test:bindings && npm run test:conformance && npm run test:core && npm run test:runner && npm run test:trigger && npm run test:adapters && npm run test:proof && npm run test:kv-proof && npm run test:s3-proof",
     "build": "tsc -p tsconfig.json",
     "proof:local": "node proof/scripts/local-server.mjs",
     "proof:burst": "node proof/scripts/burst.mjs",
@@ -30,7 +30,11 @@
     "proof:kv:smoke": "node proof/kv/smoke.mjs",
     "proof:trigger:burst": "node proof/trigger/burst.mjs",
     "proof:trigger:build": "npm run build && js-compute-runtime proof/trigger/src/fastly.js proof/trigger/bin/main.wasm",
-    "proof:trigger:smoke": "node proof/trigger/smoke.mjs"
+    "proof:trigger:smoke": "node proof/trigger/smoke.mjs",
+    "test:s3-proof": "node --test proof/s3/test/*.test.mjs",
+    "proof:s3:build": "npm run build && js-compute-runtime proof/s3/src/fastly.js proof/s3/bin/main.wasm",
+    "proof:s3": "node proof/s3/run.mjs",
+    "proof:s3:smoke": "node proof/s3/smoke.mjs"
   },
   "devDependencies": {
     "@fastly/js-compute": "3.45.0",
@@ -77,6 +81,11 @@
       "types": "./dist/adapters/fastly-kv.d.ts",
       "import": "./dist/adapters/fastly-kv.js",
       "default": "./dist/adapters/fastly-kv.js"
+    },
+    "./adapters/s3": {
+      "types": "./dist/adapters/s3.d.ts",
+      "import": "./dist/adapters/s3.js",
+      "default": "./dist/adapters/s3.js"
     }
   },
   "files": [
@@ -88,7 +97,8 @@
     "docs/execution.md",
     "docs/trigger.md",
     "docs/bindings.md",
-    "docs/conformance.md"
+    "docs/conformance.md",
+    "docs/s3.md"
   ],
   "sideEffects": false
 }

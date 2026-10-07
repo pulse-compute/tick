@@ -10,3 +10,5 @@ proof/kv/evidence/live/
 proof/trigger/evidence/live/
 dist/
 *.tgz
+proof/s3/bin/
+proof/s3/evidence/live/
