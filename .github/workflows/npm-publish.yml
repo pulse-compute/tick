@@ -64,9 +64,7 @@ jobs:
         run: npm publish pkg/npm-release/*.tgz --dry-run --ignore-scripts --access public --tag "$RELEASE_TAG" --registry https://registry.npmjs.org
       - name: Publish exact tarball
         if: ${{ !inputs.dry_run }}
-        run: npm publish pkg/npm-release/*.tgz --ignore-scripts --access public --tag "$RELEASE_TAG" --registry https://registry.npmjs.org
+        run: npm publish pkg/npm-release/*.tgz --ignore-scripts --access public --tag "$RELEASE_TAG" --registry https://registry.npmjs.org --provenance
         env:
           # npm prefers configured OIDC; this optional token supports bootstrap/fallback.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # npm provenance is unavailable for this private source repository.
-          NPM_CONFIG_PROVENANCE: 'false'

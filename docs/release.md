@@ -55,17 +55,31 @@ publish job. Configure the npm trusted publisher with:
 | Environment | `npm` |
 | Allowed action | Direct `npm publish` |
 
-Create the GitHub **npm** environment. If package bootstrap or token authentication is
-needed, supply a suitably scoped granular **NPM_TOKEN** environment secret with publish
-access to this package and an appropriate 2FA policy. It is exposed only to the final
-publish step. npm prefers configured OIDC and can fall back to that token. Keep credentials
-out of source, workflow inputs and logs. After bootstrap, configure trusted publishing
-and remove a fallback token that is no longer needed.
+Create/use the GitHub **npm** environment in repository Settings → Environments. The
+workflow declares `environment: npm`, so the npm trusted publisher's environment must
+match **npm** exactly. Environment names are optional in npm generally; this workflow
+uses one. If it is removed from the workflow, also leave the npm publisher environment
+blank. An environment is a job identity/protection boundary, not an npm credential.
+
+The package has been bootstrapped at `0.0.0` (tags `latest` and `bootstrap`); choose a new
+version such as `0.1.0-beta.1` with tag `beta` for the first versioned preview. Published
+versions cannot be reused. With the matching trusted publisher configured,
+**no NPM_TOKEN secret or publishing environment variable is required**: npm uses GitHub
+OIDC. Enable direct `npm publish` for the trusted publisher; stage-only permission does
+not authorize this workflow's final command. Optional required reviewers/branch rules
+can be configured on the GitHub environment. A suitably scoped granular **NPM_TOKEN**
+secret is only a fallback for token authentication, exposed solely to the final publish
+step. Keep credentials out of source, workflow inputs and logs.
 
 See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for current
-configuration requirements. The source repository is private, so npm provenance is
-explicitly disabled; the workflow does not claim provenance attestations. The artifact
-still records exact committed source and tarball hashes.
+configuration requirements. The source repository is now public. The final publish step
+explicitly requests `--provenance`; the job already has `id-token: write`, runs on a
+GitHub-hosted runner, and the packed `repository.url` matches this repository. OIDC
+trusted publishing automatically generates provenance for a public package from a public
+repository; the explicit flag also requests it when using the optional token fallback.
+See [npm provenance requirements](https://docs.npmjs.com/generating-provenance-statements/).
+Keep both source repository and published package public for this workflow. The artifact
+manifest's commit/tree/hash evidence remains separate from npm's signed attestation.
 
 ## Run the manual publish workflow
 
@@ -87,7 +101,7 @@ and at the original commit/tree through preparation.
 The workflow validates inputs, installs locked tools without an npm cache, runs all local
 checks and five Wasm builds, prepares the tarball, uploads tarball/manifest for 30 days,
 and executes `npm publish --dry-run` against that exact tarball. Only `dry_run: false`
-runs the final `npm publish`, using the same file, explicit tag and public access.
+runs the final `npm publish`, using the same file, explicit tag, public access and provenance.
 Concurrent publishing runs are serialized. It does not commit version bumps, create tags,
 create GitHub releases or deploy services. Review the Actions run SHA and selected version
 before dispatching a real publish; a successful dry run does not check publish authorization
@@ -106,7 +120,9 @@ Download the artifact and verify its hashes and source commit/tree against `mani
 and the reviewed run. The release manifest says `prepared`, `published: false`,
 `certified: false`; it describes preparation and is not a fabricated npm registry receipt.
 After publication, verify the exact registry version and integrity in the workflow logs
-or with `npm view @pulse-compute/tick@VERSION version dist.integrity`.
+or with `npm view @pulse-compute/tick@VERSION version dist.integrity dist.attestations`.
+The dry run does not generate or verify an attestation; verify provenance on the next
+successful real publication. Existing bootstrapped versions are not retroactively attested.
 
 ## Proof status is separate from publishing mechanics
 
