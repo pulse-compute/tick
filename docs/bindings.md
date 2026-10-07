@@ -30,8 +30,9 @@ const admission = createCoordinationBinding(
 The example's transport, secret resolver, clock, IDs, and application resources are host
 supplied. The [typechecked example](../examples/provider-bindings.ts) preserves the
 monitor's resource type. Application observations can use S3 independently of KV
-coordination; this ticket adds no S3 coordination adapter or observation deduplication
-guarantee. Job code still receives application-owned resources.
+coordination. TICK-07 additionally maps [S3 coordination](s3.md) explicitly through
+`s3-http`; neither mapping supplies observation deduplication. Job code still receives
+application-owned resources. See the [S3 binding example](../examples/s3-bindings.ts).
 
 ## Mapping choices
 
@@ -39,6 +40,7 @@ guarantee. Job code still receives application-owned resources.
 | --- | --- | --- |
 | `provided` | `store: CoordinationStore` | An explicitly supplied custom adapter. |
 | `fastly-kv-http` | `options: FastlyKvOptions` | Construct the HTTP adapter with a store ID, token resolver, transport, and optional native signal. |
+| `s3-http` | `options: S3Options` | Construct the S3 candidate with an explicit HTTPS bucket origin, host-owned SigV4 transport, and optional native signal. |
 
 Only the exact own property named by the reference is resolved. Missing aliases,
 inherited mappings, unknown kinds, weak adapters, and malformed provider options fail

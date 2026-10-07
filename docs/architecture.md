@@ -13,6 +13,8 @@ admission before job storage. Admission and individual job ownership remain sepa
 TICK-06 adds [shared binding validation and logical mappings](bindings.md) plus a
 [reusable adapter conformance harness](conformance.md); neither certifies a provider.
 There is still no deployed ownership proof or autonomous scheduling loop.
+TICK-07 adds an explicit [S3 conditional-write candidate](s3.md) and signed conformance
+guest. Local results do not establish its pending deployed coordination gate.
 
 ## Boundaries and bindings
 
@@ -26,7 +28,7 @@ There is still no deployed ownership proof or autonomous scheduling loop.
 
 `TickDefinition.bindings.coordination` maps a logical `name`, a literal `prefix`, and
 an injected `CoordinationStore`. TICK-06 resolves that name to a provided adapter or
-explicitly configured Fastly HTTP adapter. Host credentials stay in resolver closures;
+explicitly configured Fastly or S3 HTTP adapter. Host credentials stay in resolver closures;
 application resources can map other dependencies separately. The core applies the prefix once; the adapter must not
 silently apply it again. Arbitrary application dependencies live in typed `resources`:
 coordination can use KV while observations use S3. Clock, IDs, and telemetry are injected.

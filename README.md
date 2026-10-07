@@ -22,6 +22,9 @@ is disabled.
   **Live integration remains INCONCLUSIVE.**
 - **TICK-06:** Shared runtime binding validation, explicit logical provider mappings,
   and a bounded adapter conformance suite with labeled fault bindings.
+- **TICK-07:** An explicit S3 conditional-write adapter, `s3-http` mapping, and a signed
+  Fastly conformance receiver covering lost replies and stale-owner rejection.
+  **Live S3 coordination remains INCONCLUSIVE.**
 
 The experimental core is exported from `@pulse-compute/tick/core` and the runner from
 `@pulse-compute/tick/runner`. The experimental receiver is exported from
@@ -69,6 +72,7 @@ npm run proof:smoke      # Node-only receiver smoke; synthetic evidence
 npm run proof:kv:build   # separate KV proof guest -> proof/kv/bin/main.wasm
 npm run proof:trigger:build # integrated receiver -> proof/trigger/bin/main.wasm
 npm run proof:trigger:burst # bounded reference comparison; synthetic evidence
+npm run proof:s3:build   # signed S3 conformance guest -> proof/s3/bin/main.wasm
 ```
 
 `fastly compute build` uses `proof:build` via `fastly.toml`. `npm pack` builds the package;
@@ -85,6 +89,8 @@ runtime dependencies**; the Fastly SDK is only a development dependency for the 
 - [Adapter conformance](docs/conformance.md): framework-neutral cases on isolated retained keys.
 - [Integration proof runbook](proof/trigger/README.md): compiled guest and burst evidence.
 - [Fastly KV adapter](docs/fastly-kv.md): explicit HTTP transport and native SDK limitation.
+- [S3 adapter](docs/s3.md): conditional PUT, opaque ETags and explicit signed transport.
+- [S3 proof runbook](proof/s3/README.md): conformance, stale owners, SigV4 and evidence.
 - [Coordination proof runbook](proof/kv/README.md): deployment, bounded cases, and evidence.
 - [Ticket roadmap](docs/roadmap.md): scope, model/effort assignments, and proof gates.
 - [Contributor rules](AGENTS.md): preserve the boundaries while implementing later tickets.

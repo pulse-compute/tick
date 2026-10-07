@@ -21,10 +21,10 @@ try {
     'dist/bindings.js', 'dist/bindings.d.ts', 'docs/bindings.md', 'docs/conformance.md',
     'dist/internal/bindings.js', 'dist/testing/conformance.js', 'dist/testing/conformance.d.ts',
     'dist/adapters/fastly-trigger.js', 'dist/adapters/fastly-trigger.d.ts',
-    'dist/adapters/fastly-kv.js', 'dist/adapters/fastly-kv.d.ts', 'docs/architecture.md', 'docs/fastly-kv.md']) {
+    'dist/adapters/fastly-kv.js', 'dist/adapters/fastly-kv.d.ts', 'docs/architecture.md', 'docs/fastly-kv.md', 'dist/adapters/s3.js', 'dist/adapters/s3.d.ts', 'docs/s3.md']) {
     assert.ok(files.includes(required), `Missing packed file: ${required}`);
   }
-  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md', 'docs/trigger.md', 'docs/bindings.md', 'docs/conformance.md'].includes(path) || path.startsWith('dist/')),
+  assert.ok(files.every((path) => ['package.json', 'README.md', 'docs/architecture.md', 'docs/fastly-kv.md', 'docs/core.md', 'docs/execution.md', 'docs/trigger.md', 'docs/bindings.md', 'docs/conformance.md', 'docs/s3.md'].includes(path) || path.startsWith('dist/')),
     'Proof tools, credentials, examples and dev dependencies must stay out of the package');
   const consumer = join(directory, 'consumer');
   await mkdir(consumer);
@@ -32,6 +32,7 @@ try {
   run(npm, ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', '--offline', join(directory, packed.filename)], consumer);
   await writeFile(join(consumer, 'smoke.mjs'), `import * as tick from '@pulse-compute/tick';
 import { createFastlyKvStore } from '@pulse-compute/tick/adapters/fastly-kv';
+import { createS3Store } from '@pulse-compute/tick/adapters/s3';
 import { createJobCoordinator, latestSlot } from '@pulse-compute/tick/core';
 import { createRunner, JobFailure } from '@pulse-compute/tick/runner';
 import { createFastlyTrigger } from '@pulse-compute/tick/adapters/fastly-trigger';
@@ -41,6 +42,7 @@ import { runStoreConformance } from '@pulse-compute/tick/testing/conformance';
 import assert from 'node:assert/strict';
 assert.deepEqual(Object.keys(tick), ['TICK_CONTRACT_VERSION']);
 assert.equal(tick.TICK_CONTRACT_VERSION, 1);
+assert.equal(typeof createS3Store, 'function');
 assert.equal(typeof createJobCoordinator, 'function');
 assert.equal(typeof createRunner, 'function');
 assert.equal(typeof createFastlyTrigger, 'function');
@@ -52,6 +54,8 @@ assert.equal(new JobFailure('permanent', 'invalid-target').disposition, 'permane
 assert.equal(latestSlot({ kind: 'interval', anchorMs: 10, everyMs: 20, revision: 'v1', missedWindows: 'skip' }, 51), 50);
 const store = createFastlyKvStore({ storeId: 'test', token: async () => 'test', fetch: async () => new Response(null, { status: 404 }) });
 assert.deepEqual(await store.read('job'), { status: 'absent' });
+const s3 = createS3Store({ endpoint: 'https://state.s3.us-east-1.amazonaws.com', fetch: async () => new Response('<Error><Code>NoSuchKey</Code></Error>', { status: 404 }) });
+assert.deepEqual(await s3.read('missing'), { status: 'absent' });
 const bindings = createBindings({ coordination: { name: 'state', prefix: 'jobs/' }, stores: { state: { kind: 'provided', store } },
   clock: { nowMs: () => 1000, monotonicMs: () => 0 }, ids: { newAttemptToken: () => 'attempt', newMutationId: () => 'mutation' }, resources: {} });
 assert.equal(bindings.coordination.prefix, 'jobs/');
@@ -62,6 +66,8 @@ assert.equal(typeof runStoreConformance, 'function');
   await writeFile(join(consumer, 'consumer.ts'), `import { TICK_CONTRACT_VERSION } from '@pulse-compute/tick';
 import type { CoordinationStore, WriteResult } from '@pulse-compute/tick';
 import { createFastlyKvStore } from '@pulse-compute/tick/adapters/fastly-kv';
+import { createS3Store } from '@pulse-compute/tick/adapters/s3';
+import type { S3Options } from '@pulse-compute/tick/adapters/s3';
 import { createJobCoordinator } from '@pulse-compute/tick/core';
 import type { CoordinatorOptions, JobCoordinator, OwnershipLease, PendingTransition } from '@pulse-compute/tick/core';
 import { createRunner } from '@pulse-compute/tick/runner';
@@ -93,6 +99,8 @@ const coordinator: JobCoordinator = createJobCoordinator(options);
 declare const pending: PendingTransition;
 // @ts-expect-error An uncertain transition cannot authorize execution or renewal.
 const lease: OwnershipLease = pending;
+declare const s3Options: S3Options;
+const s3Adapter: CoordinationStore = createS3Store(s3Options);
 const httpAdapter: CoordinationStore = createFastlyKvStore({ storeId: 'test', token: async () => 'test', fetch });
 const version: 1 = TICK_CONTRACT_VERSION;
 declare const adapter: CoordinationStore;
@@ -101,7 +109,7 @@ const result: Promise<WriteResult> = adapter.compareAndSwap({
   // @ts-expect-error Runtime records must satisfy the contract, not arbitrary JSON.
   value: { state: 'running' }
 });
-void [version, result, httpAdapter, coordinator, lease, runner, receiver, native, bindings, conformance];
+void [version, result, httpAdapter, s3Adapter, coordinator, lease, runner, receiver, native, bindings, conformance];
 `);
   run(process.execPath, [resolve('node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--module', 'NodeNext',
     '--target', 'ES2022', '--lib', 'ES2022,DOM', 'consumer.ts'], consumer);

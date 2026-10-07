@@ -21,3 +21,4 @@ jobs:
       - run: npm run proof:build
       - run: npm run proof:kv:build
       - run: npm run proof:trigger:build
+      - run: npm run proof:s3:build

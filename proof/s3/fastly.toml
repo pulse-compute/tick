@@ -1,0 +1,38 @@
+manifest_version = 3
+name = "tick-07-s3-proof"
+description = "Conditional S3 storage proof; dedicated retained cohort only"
+language = "javascript"
+
+[scripts]
+build = "npm --prefix ../.. run proof:s3:build"
+
+[local_server.backends.s3]
+url = "https://state.s3.us-east-1.amazonaws.com"
+
+[[local_server.secret_stores.tick07_secrets]]
+key = "probe-token"
+env = "TICK_PROBE_TOKEN"
+[[local_server.secret_stores.tick07_secrets]]
+key = "aws-access-key-id"
+env = "TICK07_AWS_ACCESS_KEY_ID"
+[[local_server.secret_stores.tick07_secrets]]
+key = "aws-secret-access-key"
+env = "TICK07_AWS_SECRET_ACCESS_KEY"
+[[local_server.secret_stores.tick07_secrets]]
+key = "aws-session-token"
+env = "TICK07_AWS_SESSION_TOKEN"
+
+[setup.backends.s3]
+address = "state.s3.us-east-1.amazonaws.com"
+port = 443
+description = "Replace with dedicated bucket origin; verify TLS, Host and bounded timeouts before activation"
+
+[setup.secret_stores.tick07_secrets]
+[setup.secret_stores.tick07_secrets.entries.probe-token]
+description = "Dedicated 32-256 character base64url proof token"
+[setup.secret_stores.tick07_secrets.entries.aws-access-key-id]
+description = "Scoped dedicated proof principal access ID"
+[setup.secret_stores.tick07_secrets.entries.aws-secret-access-key]
+description = "Scoped dedicated proof principal secret"
+[setup.secret_stores.tick07_secrets.entries.aws-session-token]
+description = "Session token for temporary credentials; empty only for a principal without a session"
